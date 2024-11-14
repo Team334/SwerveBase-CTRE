@@ -4,10 +4,14 @@
 
 package frc.robot;
 
+import static edu.wpi.first.wpilibj2.command.Commands.idle;
+
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import frc.robot.commands.Autos;
+import frc.robot.generated.TunerConstants;
+import frc.robot.subsystems.CommandSwerveDrivetrain;
 
 /**
  * The methods in this class are called automatically corresponding to each mode, as described in
@@ -15,14 +19,16 @@ import frc.robot.commands.Autos;
  * this project, you must also update the Main.java file in the project.
  */
 public class Robot extends TimedRobot {
-  private Command _autonCommand = Autos.none();
+  private Command m_autonomousCommand = Autos.none();
+
+  private CommandSwerveDrivetrain _swerve = TunerConstants.createDrivetrain();
 
   /**
    * This function is run when the robot is first started up and should be used for any
    * initialization code.
    */
   public Robot() {
-        
+    _swerve.setDefaultCommand(idle(_swerve));
   }
 
   /**
@@ -52,8 +58,8 @@ public class Robot extends TimedRobot {
   @Override
   public void autonomousInit() {
     // schedule the autonomous command (example)
-    if (_autonCommand != null) {
-      _autonCommand.schedule();
+    if (m_autonomousCommand != null) {
+      m_autonomousCommand.schedule();
     }
   }
 
@@ -67,8 +73,8 @@ public class Robot extends TimedRobot {
     // teleop starts running. If you want the autonomous to
     // continue until interrupted by another command, remove
     // this line or comment it out.
-    if (_autonCommand != null) {
-      _autonCommand.cancel();
+    if (m_autonomousCommand != null) {
+      m_autonomousCommand.cancel();
     }
   }
 
