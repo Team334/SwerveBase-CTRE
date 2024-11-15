@@ -3,4 +3,4 @@ A base project for future robots that has CTRE generated swerve drive code and P
 
 # Features
 - Swerve drive code using CTRE's swerve code generator.
-- Logging with Epilogue and DogLog.
+- Device logging with SignalLogger and data logging with Epilogue and DogLog.
