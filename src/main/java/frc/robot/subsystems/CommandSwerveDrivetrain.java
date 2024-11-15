@@ -26,8 +26,8 @@ public class CommandSwerveDrivetrain extends SwerveDrivetrain implements Subsyst
 
   private ChassisSpeeds _driverChassisSpeeds = new ChassisSpeeds();
 
-  public boolean isFieldOriented = true;
-  public boolean isOpenLoop = true;
+  private boolean _isFieldOriented = true;
+  private boolean _isOpenLoop = true;
 
   /**
    * Creates a new CommandSwerveDrivetrain.
@@ -58,15 +58,14 @@ public class CommandSwerveDrivetrain extends SwerveDrivetrain implements Subsyst
         velOmega.get()
       );
     }).beforeStarting(() -> {
-      isFieldOriented = true;
-      isOpenLoop = true;
+      _isFieldOriented = true;
+      _isOpenLoop = true;
     }).withName("Drive");
   }
 
 
   /** 
-   * Drives the swerve drive. The driving configuration is set with the 
-   * {@link #isFieldOriented} and {@link #isOpenLoop} members.
+   * Drives the swerve drive. This is meant for teleop.
    * 
    * @param velX The x velocity in meters per second. 
    * @param velY The y velocity in meters per second.
@@ -77,19 +76,19 @@ public class CommandSwerveDrivetrain extends SwerveDrivetrain implements Subsyst
     _driverChassisSpeeds.vyMetersPerSecond = velY;
     _driverChassisSpeeds.omegaRadiansPerSecond = velOmega;
 
-    if (isFieldOriented) {
+    if (_isFieldOriented) {
       setControl(
         _fieldCentricRequest.withVelocityX(velX)
                             .withVelocityY(velY)
                             .withRotationalRate(velOmega)
-                            .withDriveRequestType(isOpenLoop ? DriveRequestType.OpenLoopVoltage : DriveRequestType.Velocity)
+                            .withDriveRequestType(_isOpenLoop ? DriveRequestType.OpenLoopVoltage : DriveRequestType.Velocity)
       );
     } else {
       setControl(
         _robotCentricRequest.withVelocityX(velX)
                             .withVelocityY(velY)
                             .withRotationalRate(velOmega)
-                            .withDriveRequestType(isOpenLoop ? DriveRequestType.OpenLoopVoltage : DriveRequestType.Velocity)
+                            .withDriveRequestType(_isOpenLoop ? DriveRequestType.OpenLoopVoltage : DriveRequestType.Velocity)
       );
     }
   }
@@ -102,6 +101,9 @@ public class CommandSwerveDrivetrain extends SwerveDrivetrain implements Subsyst
    * @param wheelForceFeedforwardsY The robot-relative individual module forces y-component in Newtons.
    */
   public void drive(ChassisSpeeds speeds, double[] wheelForceFeedforwardsX, double[] wheelForceFeedforwardsY) {
+    _isFieldOriented = false;
+    _isOpenLoop = false;
+    
     setControl(
       _robotSpeedsRequest.withSpeeds(speeds)
                          .withWheelForceFeedforwardsX(wheelForceFeedforwardsX)
