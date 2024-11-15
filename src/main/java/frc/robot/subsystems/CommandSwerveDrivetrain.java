@@ -7,10 +7,28 @@ package frc.robot.subsystems;
 import com.ctre.phoenix6.swerve.SwerveDrivetrain;
 import com.ctre.phoenix6.swerve.SwerveDrivetrainConstants;
 import com.ctre.phoenix6.swerve.SwerveModuleConstants;
+import com.ctre.phoenix6.swerve.SwerveModule.DriveRequestType;
+import com.ctre.phoenix6.swerve.SwerveRequest.*;
 
+import edu.wpi.first.math.kinematics.ChassisSpeeds;
+import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Subsystem;
+import frc.lib.InputStream;
+import frc.robot.Constants.SwerveConstants;
 
 public class CommandSwerveDrivetrain extends SwerveDrivetrain implements Subsystem {
+  // teleop requests
+  private RobotCentric _robotCentricRequest = new RobotCentric();
+  private FieldCentric _fieldCentricRequest = new FieldCentric();
+
+  // auton request
+  private ApplyRobotSpeeds _robotSpeedsRequest = new ApplyRobotSpeeds();
+
+  private ChassisSpeeds _driverChassisSpeeds = new ChassisSpeeds();
+
+  public boolean isFieldOriented = true;
+  public boolean isOpenLoop = true;
+
   /**
    * Creates a new CommandSwerveDrivetrain.
    * 
@@ -22,7 +40,73 @@ public class CommandSwerveDrivetrain extends SwerveDrivetrain implements Subsyst
     SwerveDrivetrainConstants drivetrainConstants,
     SwerveModuleConstants... moduleConstants
   ) {
-    super(drivetrainConstants, moduleConstants);
+    super(drivetrainConstants, SwerveConstants.odometryFrequency, moduleConstants);
+  }
+
+  /**
+   * Creates a new Command that drives the drive. This is meant for teleop.
+   * 
+   * @param velX The x velocity in meters per second.
+   * @param velY The y velocity in meters per second.
+   * @param velOmega The rotational velocity in radians per second.
+   */
+  public Command drive(InputStream velX, InputStream velY, InputStream velOmega) {
+    return run(() -> {
+      drive(
+        velX.get(),
+        velY.get(),
+        velOmega.get()
+      );
+    }).beforeStarting(() -> {
+      isFieldOriented = true;
+      isOpenLoop = true;
+    }).withName("Drive");
+  }
+
+
+  /** 
+   * Drives the swerve drive. The driving configuration is set with the 
+   * {@link #isFieldOriented} and {@link #isOpenLoop} members.
+   * 
+   * @param velX The x velocity in meters per second. 
+   * @param velY The y velocity in meters per second.
+   * @param velOmega The rotational velocity in radians per second.
+   */
+  public void drive(double velX, double velY, double velOmega) {
+    _driverChassisSpeeds.vxMetersPerSecond = velX;
+    _driverChassisSpeeds.vyMetersPerSecond = velY;
+    _driverChassisSpeeds.omegaRadiansPerSecond = velOmega;
+
+    if (isFieldOriented) {
+      setControl(
+        _fieldCentricRequest.withVelocityX(velX)
+                            .withVelocityY(velY)
+                            .withRotationalRate(velOmega)
+                            .withDriveRequestType(isOpenLoop ? DriveRequestType.OpenLoopVoltage : DriveRequestType.Velocity)
+      );
+    } else {
+      setControl(
+        _robotCentricRequest.withVelocityX(velX)
+                            .withVelocityY(velY)
+                            .withRotationalRate(velOmega)
+                            .withDriveRequestType(isOpenLoop ? DriveRequestType.OpenLoopVoltage : DriveRequestType.Velocity)
+      );
+    }
+  }
+
+  /**
+   * Drives the swerve drive. This configuration is robot oriented and closed-loop, specifically meant for auton.
+   * 
+   * @param speeds The robot-relative chassis speeds.
+   * @param wheelForceFeedforwardsX The robot-relative individual module forces x-component in Newtons.
+   * @param wheelForceFeedforwardsY The robot-relative individual module forces y-component in Newtons.
+   */
+  public void drive(ChassisSpeeds speeds, double[] wheelForceFeedforwardsX, double[] wheelForceFeedforwardsY) {
+    setControl(
+      _robotSpeedsRequest.withSpeeds(speeds)
+                         .withWheelForceFeedforwardsX(wheelForceFeedforwardsX)
+                         .withWheelForceFeedforwardsY(wheelForceFeedforwardsY)
+    );
   }
 
   @Override
