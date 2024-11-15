@@ -2,5 +2,5 @@
 A base project for future robots that has CTRE generated swerve drive code and PhotonVision AprilTag processing.
 
 # Features
-- Swerve drive code using CTRE's Swerve Code Generator.
+- Swerve drive code using CTRE's Swerve code generator.
 - Logging with Epilogue and DogLog.
