@@ -32,7 +32,7 @@ public class CommandSwerveDrivetrain extends SwerveDrivetrain implements Subsyst
   /**
    * Creates a new CommandSwerveDrivetrain.
    * 
-   * @param driveTrainConstants The CTRE {@link SwerveDrivetrainConstants}. These involve the CAN Bus name and the Pigeon Id.
+   * @param drivetrainConstants The CTRE {@link SwerveDrivetrainConstants}. These involve the CAN Bus name and the Pigeon Id.
    * @param moduleConstants The CTRE {@link SwerveModuleConstants}. The involve constants identical across all modules (PID constants, 
    * wheel radius, etc), and constants unique to each module (location, device ids, etc).
    */
