@@ -1,5 +1,5 @@
 # SwerveBase-CTRE
-[![CI](https://github.com/Team334/SwerveBase-CTRE/actions/workflows/main.yml/badge.svg)](https://github.com/Team334/SwerveBase-CTRE/actions/workflows/main.yml)
+[![CI](https://github.com/Team334/SwerveBase-CTRE/actions/workflows/main.yml/badge.svg)](https://github.com/Team334/SwerveBase-CTRE/actions/workflows/main.yml) <br>
 A base project for future robots that has CTRE generated swerve drive code and PhotonVision AprilTag processing.
 
 # Features
