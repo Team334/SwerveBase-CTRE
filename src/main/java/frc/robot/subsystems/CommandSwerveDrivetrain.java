@@ -73,19 +73,16 @@ public class CommandSwerveDrivetrain extends SwerveDrivetrain implements Subsyst
 
     registerTelemetry(
         state -> {
-          DogLog.log("Robot Container/Swerve/Pose", state.Pose);
-          DogLog.log("Robot Container/Swerve/Speeds", state.Speeds);
-          DogLog.log(
-              "Robot Container/Swerve/Desired Speeds",
-              getKinematics().toChassisSpeeds(state.ModuleTargets));
-          DogLog.log("Robot Container/Swerve/Module States", state.ModuleStates);
-          DogLog.log("Robot Container/Swerve/Desired Module States", state.ModuleTargets);
+          DogLog.log("Swerve/Pose", state.Pose);
+          DogLog.log("Swerve/Speeds", state.Speeds);
+          DogLog.log("Swerve/Desired Speeds", getKinematics().toChassisSpeeds(state.ModuleTargets));
+          DogLog.log("Swerve/Module States", state.ModuleStates);
+          DogLog.log("Swerve/Desired Module States", state.ModuleTargets);
 
           double totalDaqs = state.SuccessfulDaqs + state.FailedDaqs;
           totalDaqs = totalDaqs == 0 ? 1 : totalDaqs;
 
-          DogLog.log(
-              "Robot Container/Swerve/Odometry Success %", state.SuccessfulDaqs / totalDaqs * 100);
+          DogLog.log("Swerve/Odometry Success %", state.SuccessfulDaqs / totalDaqs * 100);
         });
 
     if (RobotBase.isSimulation()) startSimThread();
