@@ -5,7 +5,6 @@
 package frc.robot;
 
 import com.ctre.phoenix6.SignalLogger;
-
 import dev.doglog.DogLog;
 import dev.doglog.DogLogOptions;
 import edu.wpi.first.epilogue.Epilogue;
@@ -38,7 +37,7 @@ public class Robot extends TimedRobot {
 
     // set up loggers
     DogLog.setOptions(new DogLogOptions().withNtPublish(true));
-    
+
     Epilogue.bind(this);
 
     SignalLogger.start();

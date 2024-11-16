@@ -4,7 +4,7 @@
 
 package frc.robot.commands;
 
-import static edu.wpi.first.wpilibj2.command.Commands.*; 
+import static edu.wpi.first.wpilibj2.command.Commands.*;
 
 import edu.wpi.first.wpilibj2.command.Command;
 
@@ -13,9 +13,7 @@ public final class Autos {
     throw new UnsupportedOperationException("This is a utility class!");
   }
 
-  /**
-   * An auto that doesn't do anything for 15 sec.
-   */
+  /** An auto that doesn't do anything for 15 sec. */
   public static Command none() {
     return idle();
   }
