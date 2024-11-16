@@ -33,6 +33,6 @@ public final class Constants {
     public static final AngularVelocity rotationalDeadband = RadiansPerSecond.of(Math.PI * 0.1);
 
     public static final LinearVelocity maxTranslationSpeed = TunerConstants.kSpeedAt12Volts;
-    public static final AngularVelocity maxAngularSpeed = RadiansPerSecond.of(1);
+    public static final AngularVelocity maxAngularSpeed = RadiansPerSecond.of(Math.PI);
   }
 }

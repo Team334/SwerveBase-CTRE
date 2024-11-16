@@ -13,6 +13,9 @@ import com.ctre.phoenix6.swerve.SwerveModuleConstants;
 import com.ctre.phoenix6.swerve.SwerveModule.DriveRequestType;
 import com.ctre.phoenix6.swerve.SwerveRequest.*;
 
+import dev.doglog.DogLog;
+import edu.wpi.first.epilogue.Logged;
+import edu.wpi.first.epilogue.Logged.Strategy;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.wpilibj.Notifier;
 import edu.wpi.first.wpilibj.RobotBase;
@@ -23,6 +26,7 @@ import frc.lib.InputStream;
 import frc.robot.Constants;
 import frc.robot.Constants.SwerveConstants;
 
+@Logged(strategy = Strategy.OPT_IN)
 public class CommandSwerveDrivetrain extends SwerveDrivetrain implements Subsystem {
   // teleop requests
   private final RobotCentric _robotCentricRequest = new RobotCentric();
@@ -34,10 +38,13 @@ public class CommandSwerveDrivetrain extends SwerveDrivetrain implements Subsyst
   private double _lastSimTime = 0;
   private Notifier _simNotifier;
 
-
+  @Logged(name = "Driver Chassis Speeds")
   private final ChassisSpeeds _driverChassisSpeeds = new ChassisSpeeds();
 
+  @Logged(name = "Is Field Oriented")
   private boolean _isFieldOriented = true;
+
+  @Logged(name = "Is Open Loop")
   private boolean _isOpenLoop = true;
 
   /**
@@ -61,7 +68,27 @@ public class CommandSwerveDrivetrain extends SwerveDrivetrain implements Subsyst
 
     _robotSpeedsRequest.withDriveRequestType(DriveRequestType.Velocity);
 
+    registerTelemetry(state -> {
+      DogLog.log("Robot Container/Swerve/Pose", state.Pose);
+      DogLog.log("Robot Container/Swerve/Speeds", state.Speeds);
+      DogLog.log("Robot Container/Swerve/Desired Speeds", getKinematics().toChassisSpeeds(state.ModuleTargets));
+      DogLog.log("Robot Container/Swerve/Module States", state.ModuleStates);
+      DogLog.log("Robot Container/Swerve/Desired Module States", state.ModuleTargets);
+
+      double totalDaqs = state.SuccessfulDaqs + state.FailedDaqs;
+      totalDaqs = totalDaqs == 0 ? 1 : totalDaqs;
+
+      DogLog.log("Robot Container/Swerve/Odometry Success %", state.SuccessfulDaqs / totalDaqs * 100);
+    });
+
     if (RobotBase.isSimulation()) startSimThread();
+  }
+
+  /**
+   * Toggles the field oriented boolean.
+   */
+  public Command toggleFieldOriented() {
+    return runOnce(() -> _isFieldOriented = !_isFieldOriented);
   }
 
   /**

@@ -4,49 +4,46 @@
 
 package frc.robot;
 
-import static edu.wpi.first.units.Units.MetersPerSecond;
-import static edu.wpi.first.units.Units.RadiansPerSecond;
+import com.ctre.phoenix6.SignalLogger;
+
+import dev.doglog.DogLog;
+import dev.doglog.DogLogOptions;
+import edu.wpi.first.epilogue.Epilogue;
+import edu.wpi.first.epilogue.Logged;
+import edu.wpi.first.epilogue.Logged.Strategy;
+import edu.wpi.first.wpilibj.DriverStation;
+import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
-import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
-import frc.lib.InputStream;
-import frc.robot.Constants.Ports;
-import frc.robot.Constants.SwerveConstants;
-import frc.robot.commands.Autos;
-import frc.robot.generated.TunerConstants;
-import frc.robot.subsystems.CommandSwerveDrivetrain;
 
 /**
  * The methods in this class are called automatically corresponding to each mode, as described in
  * the TimedRobot documentation. If you change the name of this class or the package after creating
  * this project, you must also update the Main.java file in the project.
  */
+@Logged(strategy = Strategy.OPT_IN)
 public class Robot extends TimedRobot {
-  // controllers
-  private final CommandXboxController _driverController = new CommandXboxController(Ports.driverController);
+  @Logged(name = "Robot Container")
+  private RobotContainer _robotContainer;
 
-  // subsystems
-  private CommandSwerveDrivetrain _swerve = TunerConstants.createDrivetrain();
-
-
-  private Command m_autonomousCommand = Autos.none();
+  private Command _autonomousCommand;
 
   /**
    * This function is run when the robot is first started up and should be used for any
    * initialization code.
    */
   public Robot() {
-    _swerve.setDefaultCommand(_swerve.drive(
-        InputStream.of(_driverController::getLeftY)
-            .negate()
-            .scale(SwerveConstants.maxTranslationSpeed.in(MetersPerSecond)),
-        InputStream.of(_driverController::getLeftX)
-            .negate()
-            .scale(SwerveConstants.maxTranslationSpeed.in(MetersPerSecond)),
-        InputStream.of(_driverController::getRightX)
-            .negate()
-            .scale(SwerveConstants.maxAngularSpeed.in(RadiansPerSecond))));
+    _robotContainer = new RobotContainer();
+
+    // set up loggers
+    DogLog.setOptions(new DogLogOptions().withNtPublish(true));
+    
+    Epilogue.bind(this);
+
+    SignalLogger.start();
+
+    DriverStation.silenceJoystickConnectionWarning(RobotBase.isSimulation());
   }
 
   /**
@@ -75,9 +72,11 @@ public class Robot extends TimedRobot {
   /** This autonomous runs the autonomous command. */
   @Override
   public void autonomousInit() {
+    _autonomousCommand = _robotContainer.getAutonomousCommand();
+
     // schedule the autonomous command (example)
-    if (m_autonomousCommand != null) {
-      m_autonomousCommand.schedule();
+    if (_autonomousCommand != null) {
+      _autonomousCommand.schedule();
     }
   }
 
@@ -91,8 +90,8 @@ public class Robot extends TimedRobot {
     // teleop starts running. If you want the autonomous to
     // continue until interrupted by another command, remove
     // this line or comment it out.
-    if (m_autonomousCommand != null) {
-      m_autonomousCommand.cancel();
+    if (_autonomousCommand != null) {
+      _autonomousCommand.cancel();
     }
   }
 
