@@ -4,11 +4,15 @@
 
 package frc.robot;
 
-import static edu.wpi.first.wpilibj2.command.Commands.idle;
-
+import static edu.wpi.first.units.Units.MetersPerSecond;
+import static edu.wpi.first.units.Units.RadiansPerSecond;
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
+import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
+import frc.lib.InputStream;
+import frc.robot.Constants.Ports;
+import frc.robot.Constants.SwerveConstants;
 import frc.robot.commands.Autos;
 import frc.robot.generated.TunerConstants;
 import frc.robot.subsystems.CommandSwerveDrivetrain;
@@ -19,16 +23,30 @@ import frc.robot.subsystems.CommandSwerveDrivetrain;
  * this project, you must also update the Main.java file in the project.
  */
 public class Robot extends TimedRobot {
-  private Command m_autonomousCommand = Autos.none();
+  // controllers
+  private final CommandXboxController _driverController = new CommandXboxController(Ports.driverController);
 
+  // subsystems
   private CommandSwerveDrivetrain _swerve = TunerConstants.createDrivetrain();
+
+
+  private Command m_autonomousCommand = Autos.none();
 
   /**
    * This function is run when the robot is first started up and should be used for any
    * initialization code.
    */
   public Robot() {
-    _swerve.setDefaultCommand(idle(_swerve));
+    _swerve.setDefaultCommand(_swerve.drive(
+        InputStream.of(_driverController::getLeftY)
+            .negate()
+            .scale(SwerveConstants.maxTranslationSpeed.in(MetersPerSecond)),
+        InputStream.of(_driverController::getLeftX)
+            .negate()
+            .scale(SwerveConstants.maxTranslationSpeed.in(MetersPerSecond)),
+        InputStream.of(_driverController::getRightX)
+            .negate()
+            .scale(SwerveConstants.maxAngularSpeed.in(RadiansPerSecond))));
   }
 
   /**

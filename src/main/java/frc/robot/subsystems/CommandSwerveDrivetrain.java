@@ -4,6 +4,9 @@
 
 package frc.robot.subsystems;
 
+import static edu.wpi.first.units.Units.*;
+
+import com.ctre.phoenix6.Utils;
 import com.ctre.phoenix6.swerve.SwerveDrivetrain;
 import com.ctre.phoenix6.swerve.SwerveDrivetrainConstants;
 import com.ctre.phoenix6.swerve.SwerveModuleConstants;
@@ -11,20 +14,28 @@ import com.ctre.phoenix6.swerve.SwerveModule.DriveRequestType;
 import com.ctre.phoenix6.swerve.SwerveRequest.*;
 
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
+import edu.wpi.first.wpilibj.Notifier;
+import edu.wpi.first.wpilibj.RobotBase;
+import edu.wpi.first.wpilibj.RobotController;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Subsystem;
 import frc.lib.InputStream;
+import frc.robot.Constants;
 import frc.robot.Constants.SwerveConstants;
 
 public class CommandSwerveDrivetrain extends SwerveDrivetrain implements Subsystem {
   // teleop requests
-  private RobotCentric _robotCentricRequest = new RobotCentric();
-  private FieldCentric _fieldCentricRequest = new FieldCentric();
+  private final RobotCentric _robotCentricRequest = new RobotCentric();
+  private final FieldCentric _fieldCentricRequest = new FieldCentric();
 
   // auton request
-  private ApplyRobotSpeeds _robotSpeedsRequest = new ApplyRobotSpeeds();
+  private final ApplyRobotSpeeds _robotSpeedsRequest = new ApplyRobotSpeeds();
 
-  private ChassisSpeeds _driverChassisSpeeds = new ChassisSpeeds();
+  private double _lastSimTime = 0;
+  private Notifier _simNotifier;
+
+
+  private final ChassisSpeeds _driverChassisSpeeds = new ChassisSpeeds();
 
   private boolean _isFieldOriented = true;
   private boolean _isOpenLoop = true;
@@ -40,7 +51,17 @@ public class CommandSwerveDrivetrain extends SwerveDrivetrain implements Subsyst
     SwerveDrivetrainConstants drivetrainConstants,
     SwerveModuleConstants... moduleConstants
   ) {
-    super(drivetrainConstants, SwerveConstants.odometryFrequency, moduleConstants);
+    super(drivetrainConstants, SwerveConstants.odometryFrequency.in(Hertz), moduleConstants);
+
+    _robotCentricRequest.withDeadband(SwerveConstants.translationalDeadband)
+        .withRotationalDeadband(SwerveConstants.rotationalDeadband);
+    
+    _fieldCentricRequest.withDeadband(SwerveConstants.translationalDeadband)
+        .withRotationalDeadband(SwerveConstants.rotationalDeadband);
+
+    _robotSpeedsRequest.withDriveRequestType(DriveRequestType.Velocity);
+
+    if (RobotBase.isSimulation()) startSimThread();
   }
 
   /**
@@ -78,18 +99,16 @@ public class CommandSwerveDrivetrain extends SwerveDrivetrain implements Subsyst
 
     if (_isFieldOriented) {
       setControl(
-        _fieldCentricRequest.withVelocityX(velX)
-                            .withVelocityY(velY)
-                            .withRotationalRate(velOmega)
-                            .withDriveRequestType(_isOpenLoop ? DriveRequestType.OpenLoopVoltage : DriveRequestType.Velocity)
-      );
+          _fieldCentricRequest.withVelocityX(velX)
+              .withVelocityY(velY)
+              .withRotationalRate(velOmega)
+              .withDriveRequestType(_isOpenLoop ? DriveRequestType.OpenLoopVoltage : DriveRequestType.Velocity));
     } else {
       setControl(
-        _robotCentricRequest.withVelocityX(velX)
-                            .withVelocityY(velY)
-                            .withRotationalRate(velOmega)
-                            .withDriveRequestType(_isOpenLoop ? DriveRequestType.OpenLoopVoltage : DriveRequestType.Velocity)
-      );
+          _robotCentricRequest.withVelocityX(velX)
+              .withVelocityY(velY)
+              .withRotationalRate(velOmega)
+              .withDriveRequestType(_isOpenLoop ? DriveRequestType.OpenLoopVoltage : DriveRequestType.Velocity));
     }
   }
 
@@ -105,14 +124,29 @@ public class CommandSwerveDrivetrain extends SwerveDrivetrain implements Subsyst
     _isOpenLoop = false;
     
     setControl(
-      _robotSpeedsRequest.withSpeeds(speeds)
-                         .withWheelForceFeedforwardsX(wheelForceFeedforwardsX)
-                         .withWheelForceFeedforwardsY(wheelForceFeedforwardsY)
-    );
+        _robotSpeedsRequest.withSpeeds(speeds)
+            .withWheelForceFeedforwardsX(wheelForceFeedforwardsX)
+            .withWheelForceFeedforwardsY(wheelForceFeedforwardsY));
   }
 
   @Override
   public void periodic() {
     // This method will be called once per scheduler run
+  }
+
+  private void startSimThread() {
+    _lastSimTime = Utils.getCurrentTimeSeconds();
+
+    // Run simulation at a faster rate so PID gains behave more reasonably
+    _simNotifier = new Notifier(() -> {
+      final double currentTime = Utils.getCurrentTimeSeconds();
+      double deltaTime = currentTime - _lastSimTime;
+      _lastSimTime = currentTime;
+
+      // use the measured time delta, get battery voltage from WPILib
+      updateSimState(deltaTime, RobotController.getBatteryVoltage());
+    });
+    
+    _simNotifier.startPeriodic(1 / Constants.simUpdateFrequency.in(Hertz));
   }
 }
