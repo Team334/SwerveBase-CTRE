@@ -32,6 +32,8 @@ public class CommandSwerveDrivetrain extends SwerveDrivetrain implements Subsyst
   private final RobotCentric _robotCentricRequest = new RobotCentric();
   private final FieldCentric _fieldCentricRequest = new FieldCentric();
 
+  private final SwerveDriveBrake _brakeRequest = new SwerveDriveBrake();
+
   // auton request
   private final ApplyRobotSpeeds _robotSpeedsRequest = new ApplyRobotSpeeds();
 
@@ -88,7 +90,14 @@ public class CommandSwerveDrivetrain extends SwerveDrivetrain implements Subsyst
    * Toggles the field oriented boolean.
    */
   public Command toggleFieldOriented() {
-    return runOnce(() -> _isFieldOriented = !_isFieldOriented);
+    return brake().withTimeout(2).alongWith(runOnce(() -> _isFieldOriented = !_isFieldOriented));
+  }
+
+  /**
+   * Brakes the swerve drive (module form an "X" formation).
+   */
+  public Command brake() {
+    return run(() -> setControl(_brakeRequest));
   }
 
   /**
