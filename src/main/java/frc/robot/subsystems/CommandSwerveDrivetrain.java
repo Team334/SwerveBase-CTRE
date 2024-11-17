@@ -95,12 +95,15 @@ public class CommandSwerveDrivetrain extends SwerveDrivetrain implements Subsyst
 
   /** Toggles the field oriented boolean. */
   public Command toggleFieldOriented() {
-    return brake().withTimeout(2).alongWith(runOnce(() -> _isFieldOriented = !_isFieldOriented));
+    return brake()
+        .withTimeout(0.5)
+        .andThen(runOnce(() -> _isFieldOriented = !_isFieldOriented))
+        .withName("Toggle Field Oriented");
   }
 
   /** Brakes the swerve drive (module form an "X" formation). */
   public Command brake() {
-    return run(() -> setControl(_brakeRequest));
+    return run(() -> setControl(_brakeRequest)).withName("Brake");
   }
 
   /**
@@ -114,11 +117,6 @@ public class CommandSwerveDrivetrain extends SwerveDrivetrain implements Subsyst
     return run(() -> {
           drive(velX.get(), velY.get(), velOmega.get());
         })
-        .beforeStarting(
-            () -> {
-              _isFieldOriented = true;
-              _isOpenLoop = true;
-            })
         .withName("Drive");
   }
 

@@ -32,10 +32,10 @@
       "axisCount": 5,
       "buttonCount": 4,
       "buttonKeys": [
-        90,
-        88,
         67,
-        86
+        66,
+        88,
+        90
       ],
       "povConfig": [
         {
@@ -49,7 +49,7 @@
           "key90": 326
         }
       ],
-      "povCount": 1
+      "povCount": 0
     },
     {
       "axisConfig": [

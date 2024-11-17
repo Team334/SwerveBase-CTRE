@@ -54,6 +54,10 @@ public class Robot extends TimedRobot {
 
     DriverStation.silenceJoystickConnectionWarning(RobotBase.isSimulation());
 
+    configureBindings();
+  }
+
+  private void configureBindings() {
     _swerve.setDefaultCommand(
         _swerve.drive(
             InputStream.of(_driverController::getLeftY)
@@ -65,6 +69,9 @@ public class Robot extends TimedRobot {
             InputStream.of(_driverController::getRightX)
                 .negate()
                 .scale(SwerveConstants.maxAngularSpeed.in(RadiansPerSecond))));
+
+    _driverController.x().whileTrue(_swerve.brake());
+    _driverController.a().onTrue(_swerve.toggleFieldOriented());
   }
 
   /**
@@ -83,13 +90,6 @@ public class Robot extends TimedRobot {
     CommandScheduler.getInstance().run();
   }
 
-  /** This function is called once each time the robot enters Disabled mode. */
-  @Override
-  public void disabledInit() {}
-
-  @Override
-  public void disabledPeriodic() {}
-
   /** This autonomous runs the autonomous command. */
   @Override
   public void autonomousInit() {
@@ -98,10 +98,6 @@ public class Robot extends TimedRobot {
       _autonomousCommand.schedule();
     }
   }
-
-  /** This function is called periodically during autonomous. */
-  @Override
-  public void autonomousPeriodic() {}
 
   @Override
   public void teleopInit() {
@@ -114,25 +110,9 @@ public class Robot extends TimedRobot {
     }
   }
 
-  /** This function is called periodically during operator control. */
-  @Override
-  public void teleopPeriodic() {}
-
   @Override
   public void testInit() {
     // Cancels all running commands at the start of test mode.
     CommandScheduler.getInstance().cancelAll();
   }
-
-  /** This function is called periodically during test mode. */
-  @Override
-  public void testPeriodic() {}
-
-  /** This function is called once when the robot is first started up. */
-  @Override
-  public void simulationInit() {}
-
-  /** This function is called periodically whilst in simulation. */
-  @Override
-  public void simulationPeriodic() {}
 }

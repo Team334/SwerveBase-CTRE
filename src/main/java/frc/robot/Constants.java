@@ -7,6 +7,7 @@ package frc.robot;
 import static edu.wpi.first.units.Units.*;
 
 import edu.wpi.first.units.measure.AngularVelocity;
+import edu.wpi.first.units.measure.Distance;
 import edu.wpi.first.units.measure.Frequency;
 import edu.wpi.first.units.measure.LinearVelocity;
 import frc.robot.generated.TunerConstants;
@@ -27,7 +28,13 @@ public final class Constants {
   }
 
   public static class SwerveConstants {
-    public static final Frequency odometryFrequency = Hertz.of(100);
+    public static final Frequency odometryFrequency = Hertz.of(250);
+
+    public static final Distance driveRadius =
+        Meters.of(
+            Math.sqrt(
+                Math.pow(TunerConstants.FrontLeft.LocationX, 2)
+                    + Math.pow(TunerConstants.FrontLeft.LocationY, 2)));
 
     public static final LinearVelocity translationalDeadband = MetersPerSecond.of(0);
     public static final AngularVelocity rotationalDeadband = RadiansPerSecond.of(0);
