@@ -18,6 +18,7 @@ import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
+import frc.lib.FaultLogger;
 import frc.lib.InputStream;
 import frc.robot.Constants.Ports;
 import frc.robot.Constants.SwerveConstants;
@@ -55,6 +56,8 @@ public class Robot extends TimedRobot {
     DriverStation.silenceJoystickConnectionWarning(RobotBase.isSimulation());
 
     configureBindings();
+
+    addPeriodic(FaultLogger::update, 1);
   }
 
   private void configureBindings() {

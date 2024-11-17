@@ -6,10 +6,12 @@ A base project for future robots that has CTRE generated swerve drive code and P
 # Features
 - Swerve drive code using CTRE's swerve code generator.
 - Device logging with SignalLogger and data logging with Epilogue and DogLog.
+- Device Fault Logging as telemetry for at-home testing. The faults are also logged with DogLog for post-match review.
 
 # Todo
 - Add the working stuff from other SwerveBase (fault logger, photon vision code).
-- Add WPILib testing?
+- Add WPILib unit testing?
+- Add proper licenses
 
 ## 2025 Beta Known Issues
 - To run sim, do `./gradlew simulateJava` instead of using the WPILib extension.

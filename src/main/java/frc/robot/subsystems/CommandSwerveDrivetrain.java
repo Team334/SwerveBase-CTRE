@@ -10,6 +10,7 @@ import com.ctre.phoenix6.SignalLogger;
 import com.ctre.phoenix6.Utils;
 import com.ctre.phoenix6.swerve.SwerveDrivetrain;
 import com.ctre.phoenix6.swerve.SwerveDrivetrainConstants;
+import com.ctre.phoenix6.swerve.SwerveModule;
 import com.ctre.phoenix6.swerve.SwerveModule.DriveRequestType;
 import com.ctre.phoenix6.swerve.SwerveModuleConstants;
 import com.ctre.phoenix6.swerve.SwerveRequest.*;
@@ -28,6 +29,7 @@ import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Subsystem;
 import edu.wpi.first.wpilibj2.command.button.RobotModeTriggers;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
+import frc.lib.FaultLogger;
 import frc.lib.InputStream;
 import frc.robot.Constants;
 import frc.robot.Constants.SwerveConstants;
@@ -164,7 +166,19 @@ public class CommandSwerveDrivetrain extends SwerveDrivetrain implements Subsyst
     SysId.displayRoutine("Swerve Steer", _sysIdRoutineSteer);
     SysId.displayRoutine("Swerve Rotation", _sysIdRoutineRotation);
 
+    registerFallibles();
+
     if (RobotBase.isSimulation()) startSimThread();
+  }
+
+  private void registerFallibles() {
+    for (SwerveModule module : getModules()) {
+      FaultLogger.register(module.getDriveMotor());
+      FaultLogger.register(module.getSteerMotor());
+      FaultLogger.register(module.getCANcoder());
+    }
+
+    FaultLogger.register(getPigeon2());
   }
 
   private void startSimThread() {
