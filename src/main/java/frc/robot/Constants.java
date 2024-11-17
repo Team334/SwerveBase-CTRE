@@ -36,10 +36,10 @@ public final class Constants {
                 Math.pow(TunerConstants.FrontLeft.LocationX, 2)
                     + Math.pow(TunerConstants.FrontLeft.LocationY, 2)));
 
-    public static final LinearVelocity translationalDeadband = MetersPerSecond.of(0);
-    public static final AngularVelocity rotationalDeadband = RadiansPerSecond.of(0);
-
     public static final LinearVelocity maxTranslationalSpeed = TunerConstants.kSpeedAt12Volts;
     public static final AngularVelocity maxAngularSpeed = RadiansPerSecond.of(Math.PI);
+
+    public static final LinearVelocity translationalDeadband = maxTranslationalSpeed.times(0.1);
+    public static final AngularVelocity rotationalDeadband = maxAngularSpeed.times(0.1);
   }
 }
