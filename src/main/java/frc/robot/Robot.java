@@ -11,7 +11,7 @@ import dev.doglog.DogLog;
 import dev.doglog.DogLogOptions;
 import edu.wpi.first.epilogue.Epilogue;
 import edu.wpi.first.epilogue.Logged;
-import edu.wpi.first.epilogue.NotLogged;
+import edu.wpi.first.epilogue.Logged.Strategy;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj.TimedRobot;
@@ -30,7 +30,7 @@ import frc.robot.subsystems.CommandSwerveDrivetrain;
  * the TimedRobot documentation. If you change the name of this class or the package after creating
  * this project, you must also update the Main.java file in the project.
  */
-@Logged
+@Logged(strategy = Strategy.OPT_IN)
 public class Robot extends TimedRobot {
   // controllers
   private final CommandXboxController _driverController =
@@ -40,7 +40,7 @@ public class Robot extends TimedRobot {
   @Logged(name = "Swerve")
   private CommandSwerveDrivetrain _swerve = TunerConstants.createDrivetrain();
 
-  @NotLogged private Command _autonomousCommand = Autos.none();
+  private Command _autonomousCommand = Autos.none();
 
   /**
    * This function is run when the robot is first started up and should be used for any
@@ -58,10 +58,10 @@ public class Robot extends TimedRobot {
         _swerve.drive(
             InputStream.of(_driverController::getLeftY)
                 .negate()
-                .scale(SwerveConstants.maxTranslationSpeed.in(MetersPerSecond)),
+                .scale(SwerveConstants.maxTranslationalSpeed.in(MetersPerSecond)),
             InputStream.of(_driverController::getLeftX)
                 .negate()
-                .scale(SwerveConstants.maxTranslationSpeed.in(MetersPerSecond)),
+                .scale(SwerveConstants.maxTranslationalSpeed.in(MetersPerSecond)),
             InputStream.of(_driverController::getRightX)
                 .negate()
                 .scale(SwerveConstants.maxAngularSpeed.in(RadiansPerSecond))));

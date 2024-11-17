@@ -29,10 +29,10 @@ public final class Constants {
   public static class SwerveConstants {
     public static final Frequency odometryFrequency = Hertz.of(100);
 
-    public static final LinearVelocity translationalDeadband = MetersPerSecond.of(0.1);
-    public static final AngularVelocity rotationalDeadband = RadiansPerSecond.of(Math.PI * 0.1);
+    public static final LinearVelocity translationalDeadband = MetersPerSecond.of(0);
+    public static final AngularVelocity rotationalDeadband = RadiansPerSecond.of(0);
 
-    public static final LinearVelocity maxTranslationSpeed = TunerConstants.kSpeedAt12Volts;
+    public static final LinearVelocity maxTranslationalSpeed = TunerConstants.kSpeedAt12Volts;
     public static final AngularVelocity maxAngularSpeed = RadiansPerSecond.of(Math.PI);
   }
 }

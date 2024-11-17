@@ -15,7 +15,11 @@ import com.ctre.phoenix6.swerve.SwerveRequest.*;
 import dev.doglog.DogLog;
 import edu.wpi.first.epilogue.Logged;
 import edu.wpi.first.epilogue.Logged.Strategy;
+import edu.wpi.first.math.geometry.Pose2d;
+import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
+import edu.wpi.first.math.kinematics.SwerveDriveKinematics;
+import edu.wpi.first.math.kinematics.SwerveModuleState;
 import edu.wpi.first.wpilibj.Notifier;
 import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj.RobotController;
@@ -83,6 +87,7 @@ public class CommandSwerveDrivetrain extends SwerveDrivetrain implements Subsyst
           totalDaqs = totalDaqs == 0 ? 1 : totalDaqs;
 
           DogLog.log("Swerve/Odometry Success %", state.SuccessfulDaqs / totalDaqs * 100);
+          DogLog.log("Swerve/Odometry Period", state.OdometryPeriod);
         });
 
     if (RobotBase.isSimulation()) startSimThread();
@@ -129,6 +134,24 @@ public class CommandSwerveDrivetrain extends SwerveDrivetrain implements Subsyst
     _driverChassisSpeeds.vyMetersPerSecond = velY;
     _driverChassisSpeeds.omegaRadiansPerSecond = velOmega;
 
+    // go through a couple of steps to ensure that input speeds are actually achievable
+    ChassisSpeeds tempSpeeds = _driverChassisSpeeds;
+    SwerveModuleState[] tempStates;
+
+    if (_isFieldOriented)
+      tempSpeeds = ChassisSpeeds.fromFieldRelativeSpeeds(tempSpeeds, getHeading());
+
+    tempStates = getKinematics().toSwerveModuleStates(tempSpeeds);
+    SwerveDriveKinematics.desaturateWheelSpeeds(tempStates, SwerveConstants.maxTranslationalSpeed);
+    tempSpeeds = getKinematics().toChassisSpeeds(tempStates);
+
+    if (_isFieldOriented)
+      tempSpeeds = ChassisSpeeds.fromRobotRelativeSpeeds(tempSpeeds, getHeading());
+
+    velX = tempSpeeds.vxMetersPerSecond;
+    velY = tempSpeeds.vyMetersPerSecond;
+    velOmega = tempSpeeds.omegaRadiansPerSecond;
+
     if (_isFieldOriented) {
       setControl(
           _fieldCentricRequest
@@ -168,6 +191,21 @@ public class CommandSwerveDrivetrain extends SwerveDrivetrain implements Subsyst
             .withSpeeds(speeds)
             .withWheelForceFeedforwardsX(wheelForceFeedforwardsX)
             .withWheelForceFeedforwardsY(wheelForceFeedforwardsY));
+  }
+
+  /** Wrapper for getting estimated pose. */
+  public Pose2d getPose() {
+    return getState().Pose;
+  }
+
+  /** Wrapper for getting estimated heading. */
+  public Rotation2d getHeading() {
+    return getPose().getRotation();
+  }
+
+  /** Wrapper for getting current robot-relative chassis speeds. */
+  public ChassisSpeeds getChassisSpeeds() {
+    return getState().Speeds;
   }
 
   @Override
