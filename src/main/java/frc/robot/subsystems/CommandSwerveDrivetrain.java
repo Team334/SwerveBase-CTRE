@@ -41,6 +41,12 @@ public class CommandSwerveDrivetrain extends SwerveDrivetrain implements Subsyst
   // auton request
   private final ApplyRobotSpeeds _robotSpeedsRequest = new ApplyRobotSpeeds();
 
+  // sysid requests
+  private final SysIdSwerveTranslation _translationSysIdRequest = new SysIdSwerveTranslation();
+  private final SysIdSwerveSteerGains _steerSysIdRequest = new SysIdSwerveSteerGains();
+  private final SysIdSwerveRotation _rotationSysIdRequest =
+      new SysIdSwerveRotation(); // how does this work?
+
   private double _lastSimTime = 0;
   private Notifier _simNotifier;
 
