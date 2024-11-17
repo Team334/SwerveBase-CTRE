@@ -6,6 +6,7 @@ package frc.robot.subsystems;
 
 import static edu.wpi.first.units.Units.*;
 
+import com.ctre.phoenix6.SignalLogger;
 import com.ctre.phoenix6.Utils;
 import com.ctre.phoenix6.swerve.SwerveDrivetrain;
 import com.ctre.phoenix6.swerve.SwerveDrivetrainConstants;
@@ -26,9 +27,11 @@ import edu.wpi.first.wpilibj.RobotController;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Subsystem;
 import edu.wpi.first.wpilibj2.command.button.RobotModeTriggers;
+import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
 import frc.lib.InputStream;
 import frc.robot.Constants;
 import frc.robot.Constants.SwerveConstants;
+import frc.robot.utils.SysId;
 
 @Logged(strategy = Strategy.OPT_IN)
 public class CommandSwerveDrivetrain extends SwerveDrivetrain implements Subsystem {
@@ -46,6 +49,49 @@ public class CommandSwerveDrivetrain extends SwerveDrivetrain implements Subsyst
   private final SysIdSwerveSteerGains _steerSysIdRequest = new SysIdSwerveSteerGains();
   private final SysIdSwerveRotation _rotationSysIdRequest =
       new SysIdSwerveRotation(); // how does this work?
+
+  // SysId routine for characterizing translation. This is used to find PID gains for the drive
+  // motors.
+  private final SysIdRoutine _sysIdRoutineTranslation =
+      new SysIdRoutine(
+          new SysIdRoutine.Config(
+              null, // Use default ramp rate (1 V/s)
+              Volts.of(4), // Reduce dynamic step voltage to 4 V to prevent brownout
+              null, // Use default timeout (10 s)
+              state -> DogLog.log("SysId Translation Routine State", state.toString())),
+          new SysIdRoutine.Mechanism(
+              volts -> setControl(_translationSysIdRequest.withVolts(volts)), null, this));
+
+  // SysId routine for characterizing steer. This is used to find PID gains for the steer motors.
+  private final SysIdRoutine _sysIdRoutineSteer =
+      new SysIdRoutine(
+          new SysIdRoutine.Config(
+              null, // Use default ramp rate (1 V/s)
+              Volts.of(7), // Use dynamic voltage of 7 V
+              null, // Use default timeout (10 s)
+              state -> DogLog.log("SysId Steer Routine State", state.toString())),
+          new SysIdRoutine.Mechanism(
+              volts -> setControl(_steerSysIdRequest.withVolts(volts)), null, this));
+
+  // SysId routine for characterizing rotation.
+  private final SysIdRoutine _sysIdRoutineRotation =
+      new SysIdRoutine(
+          new SysIdRoutine.Config(
+              // This is in radians per second², but SysId only supports "volts per second"
+              Volts.of(Math.PI / 6).per(Second),
+              // This is in radians per second, but SysId only supports "volts"
+              Volts.of(Math.PI),
+              null, // Use default timeout (10 s)
+              state -> DogLog.log("SysId Rotation Routine State", state.toString())),
+          new SysIdRoutine.Mechanism(
+              output -> {
+                // output is actually radians per second, but SysId only supports "volts"
+                setControl(_rotationSysIdRequest.withRotationalRate(output.in(Volts)));
+                // also log the requested output for SysId
+                SignalLogger.writeDouble("Rotational Rate", output.in(Volts));
+              },
+              null,
+              this));
 
   private double _lastSimTime = 0;
   private Notifier _simNotifier;
@@ -113,7 +159,31 @@ public class CommandSwerveDrivetrain extends SwerveDrivetrain implements Subsyst
                   _isOpenLoop = true;
                 }));
 
+    // display all sysid routines
+    SysId.displayRoutine("Swerve Translation", _sysIdRoutineTranslation);
+    SysId.displayRoutine("Swerve Steer", _sysIdRoutineSteer);
+    SysId.displayRoutine("Swerve Rotation", _sysIdRoutineRotation);
+
     if (RobotBase.isSimulation()) startSimThread();
+  }
+
+  private void startSimThread() {
+    _lastSimTime = Utils.getCurrentTimeSeconds();
+
+    // Run simulation at a faster rate so PID gains behave more reasonably
+    _simNotifier =
+        new Notifier(
+            () -> {
+              final double currentTime = Utils.getCurrentTimeSeconds();
+              double deltaTime = currentTime - _lastSimTime;
+              _lastSimTime = currentTime;
+
+              // use the measured time delta, get battery voltage from WPILib
+              updateSimState(deltaTime, RobotController.getBatteryVoltage());
+            });
+
+    _simNotifier.setName("Swerve Sim Thread");
+    _simNotifier.startPeriodic(1 / Constants.simUpdateFrequency.in(Hertz));
   }
 
   /** Toggles the field oriented boolean. */
@@ -229,23 +299,5 @@ public class CommandSwerveDrivetrain extends SwerveDrivetrain implements Subsyst
   @Override
   public void periodic() {
     // This method will be called once per scheduler run
-  }
-
-  private void startSimThread() {
-    _lastSimTime = Utils.getCurrentTimeSeconds();
-
-    // Run simulation at a faster rate so PID gains behave more reasonably
-    _simNotifier =
-        new Notifier(
-            () -> {
-              final double currentTime = Utils.getCurrentTimeSeconds();
-              double deltaTime = currentTime - _lastSimTime;
-              _lastSimTime = currentTime;
-
-              // use the measured time delta, get battery voltage from WPILib
-              updateSimState(deltaTime, RobotController.getBatteryVoltage());
-            });
-
-    _simNotifier.startPeriodic(1 / Constants.simUpdateFrequency.in(Hertz));
   }
 }
