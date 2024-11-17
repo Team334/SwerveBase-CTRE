@@ -25,6 +25,7 @@ import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj.RobotController;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Subsystem;
+import edu.wpi.first.wpilibj2.command.button.RobotModeTriggers;
 import frc.lib.InputStream;
 import frc.robot.Constants;
 import frc.robot.Constants.SwerveConstants;
@@ -89,6 +90,22 @@ public class CommandSwerveDrivetrain extends SwerveDrivetrain implements Subsyst
           DogLog.log("Swerve/Odometry Success %", state.SuccessfulDaqs / totalDaqs * 100);
           DogLog.log("Swerve/Odometry Period", state.OdometryPeriod);
         });
+
+    // TODO: idk if this will conflict with the actual scheduled commands
+    RobotModeTriggers.autonomous()
+        .onTrue(
+            runOnce(
+                () -> {
+                  _isFieldOriented = false;
+                  _isOpenLoop = false;
+                }));
+    RobotModeTriggers.teleop()
+        .onTrue(
+            runOnce(
+                () -> {
+                  _isFieldOriented = true;
+                  _isOpenLoop = true;
+                }));
 
     if (RobotBase.isSimulation()) startSimThread();
   }
@@ -181,9 +198,6 @@ public class CommandSwerveDrivetrain extends SwerveDrivetrain implements Subsyst
    */
   public void drive(
       ChassisSpeeds speeds, double[] wheelForceFeedforwardsX, double[] wheelForceFeedforwardsY) {
-    _isFieldOriented = false;
-    _isOpenLoop = false;
-
     setControl(
         _robotSpeedsRequest
             .withSpeeds(speeds)
