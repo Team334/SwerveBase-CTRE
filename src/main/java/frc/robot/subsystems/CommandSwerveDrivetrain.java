@@ -208,7 +208,7 @@ public class CommandSwerveDrivetrain extends SwerveDrivetrain implements Subsyst
         .withName("Toggle Field Oriented");
   }
 
-  /** Brakes the swerve drive (module form an "X" formation). */
+  /** Brakes the swerve drive (modules form an "X" formation). */
   public Command brake() {
     return run(() -> setControl(_brakeRequest)).withName("Brake");
   }
