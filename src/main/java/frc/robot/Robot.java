@@ -5,6 +5,7 @@
 package frc.robot;
 
 import static edu.wpi.first.units.Units.*;
+import static edu.wpi.first.wpilibj2.command.Commands.*;
 
 import com.ctre.phoenix6.SignalLogger;
 import dev.doglog.DogLog;
@@ -12,9 +13,11 @@ import dev.doglog.DogLogOptions;
 import edu.wpi.first.epilogue.Epilogue;
 import edu.wpi.first.epilogue.Logged;
 import edu.wpi.first.epilogue.Logged.Strategy;
+import edu.wpi.first.wpilibj.DataLogManager;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj.TimedRobot;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
@@ -25,6 +28,7 @@ import frc.robot.Constants.SwerveConstants;
 import frc.robot.commands.Autos;
 import frc.robot.generated.TunerConstants;
 import frc.robot.subsystems.CommandSwerveDrivetrain;
+import frc.robot.subsystems.AdvancedTest;
 
 /**
  * The methods in this class are called automatically corresponding to each mode, as described in
@@ -41,6 +45,8 @@ public class Robot extends TimedRobot {
   @Logged(name = "Swerve")
   private CommandSwerveDrivetrain _swerve = TunerConstants.createDrivetrain();
 
+  private AdvancedTest _advancedTest = new AdvancedTest();
+
   private Command _autonomousCommand = Autos.none();
 
   /**
@@ -56,6 +62,12 @@ public class Robot extends TimedRobot {
     DriverStation.silenceJoystickConnectionWarning(RobotBase.isSimulation());
 
     configureBindings();
+
+    SmartDashboard.putData("Robot Self Check", sequence(
+      runOnce(() -> DataLogManager.log("Robot Self Check Started!")),
+      _advancedTest.fullSelfCheck(),
+      runOnce(() -> DataLogManager.log("Robot Self Check Successful!"))
+    ));
 
     addPeriodic(FaultLogger::update, 1);
   }

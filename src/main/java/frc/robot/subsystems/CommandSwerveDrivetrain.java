@@ -31,12 +31,13 @@ import edu.wpi.first.wpilibj2.command.button.RobotModeTriggers;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
 import frc.lib.FaultLogger;
 import frc.lib.InputStream;
+import frc.lib.SelfChecked;
 import frc.robot.Constants;
 import frc.robot.Constants.SwerveConstants;
 import frc.robot.utils.SysId;
 
 @Logged(strategy = Strategy.OPT_IN)
-public class CommandSwerveDrivetrain extends SwerveDrivetrain implements Subsystem {
+public class CommandSwerveDrivetrain extends SwerveDrivetrain implements Subsystem, SelfChecked {
   // teleop requests
   private final RobotCentric _robotCentricRequest = new RobotCentric();
   private final FieldCentric _fieldCentricRequest = new FieldCentric();
