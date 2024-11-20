@@ -27,8 +27,8 @@ import frc.robot.Constants.Ports;
 import frc.robot.Constants.SwerveConstants;
 import frc.robot.commands.Autos;
 import frc.robot.generated.TunerConstants;
-import frc.robot.subsystems.CommandSwerveDrivetrain;
 import frc.robot.subsystems.AdvancedTest;
+import frc.robot.subsystems.CommandSwerveDrivetrain;
 
 /**
  * The methods in this class are called automatically corresponding to each mode, as described in
@@ -63,11 +63,12 @@ public class Robot extends TimedRobot {
 
     configureBindings();
 
-    SmartDashboard.putData("Robot Self Check", sequence(
-      runOnce(() -> DataLogManager.log("Robot Self Check Started!")),
-      _advancedTest.fullSelfCheck(),
-      runOnce(() -> DataLogManager.log("Robot Self Check Successful!"))
-    ));
+    SmartDashboard.putData(
+        "Robot Self Check",
+        sequence(
+            runOnce(() -> DataLogManager.log("Robot Self Check Started!")),
+            _advancedTest.fullSelfCheck(),
+            runOnce(() -> DataLogManager.log("Robot Self Check Successful!"))));
 
     addPeriodic(FaultLogger::update, 1);
   }

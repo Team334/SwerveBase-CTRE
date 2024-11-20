@@ -1,8 +1,5 @@
 package frc.lib;
 
-import java.util.HashSet;
-import java.util.Set;
-
 import dev.doglog.DogLog;
 import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.wpilibj2.command.Command;
@@ -11,11 +8,15 @@ import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import edu.wpi.first.wpilibj2.command.button.RobotModeTriggers;
 import frc.lib.FaultsTable.Fault;
 import frc.lib.FaultsTable.FaultType;
+import java.util.HashSet;
+import java.util.Set;
 
 public class AdvancedSubsystem extends SubsystemBase implements SelfChecked {
   // faults and the table containing them
   private Set<Fault> _faults = new HashSet<Fault>();
-  private FaultsTable _faultsTable = new FaultsTable(NetworkTableInstance.getDefault().getTable("Self Check"), getName() + " Faults");
+  private FaultsTable _faultsTable =
+      new FaultsTable(
+          NetworkTableInstance.getDefault().getTable("Self Check"), getName() + " Faults");
 
   private boolean _hasError = false;
 
@@ -47,11 +48,15 @@ public class AdvancedSubsystem extends SubsystemBase implements SelfChecked {
   }
 
   /** Returns a full Command that self checks this Subsystem for pre-match. */
-  public final Command fullSelfCheck() {    
-    Command selfCheck = Commands.sequence(
-      runOnce(this::clearFaults), // clear all faults and hasError (also adds this subsystem as a requirement)
-      selfCheck(this::addFault).until(this::hasError) // self check this subsystem
-    ).withName(getName() + " Self Check");
+  public final Command fullSelfCheck() {
+    Command selfCheck =
+        Commands.sequence(
+                runOnce(
+                    this::clearFaults), // clear all faults and hasError (also adds this subsystem
+                // as a requirement)
+                selfCheck(this::addFault).until(this::hasError) // self check this subsystem
+                )
+            .withName(getName() + " Self Check");
 
     return selfCheck;
   }
