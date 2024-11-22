@@ -27,7 +27,6 @@ import frc.robot.Constants.Ports;
 import frc.robot.Constants.SwerveConstants;
 import frc.robot.commands.Autos;
 import frc.robot.generated.TunerConstants;
-import frc.robot.subsystems.AdvancedTest;
 import frc.robot.subsystems.CommandSwerveDrivetrain;
 
 /**
@@ -44,8 +43,6 @@ public class Robot extends TimedRobot {
   // subsystems
   @Logged(name = "Swerve")
   private CommandSwerveDrivetrain _swerve = TunerConstants.createDrivetrain();
-
-  private AdvancedTest _advancedTest = new AdvancedTest();
 
   private Command _autonomousCommand = Autos.none();
 
@@ -67,7 +64,6 @@ public class Robot extends TimedRobot {
         "Robot Self Check",
         sequence(
             runOnce(() -> DataLogManager.log("Robot Self Check Started!")),
-            _advancedTest.fullSelfCheck(),
             runOnce(() -> DataLogManager.log("Robot Self Check Successful!"))));
 
     addPeriodic(FaultLogger::update, 1);

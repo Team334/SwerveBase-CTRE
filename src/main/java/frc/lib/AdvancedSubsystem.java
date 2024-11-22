@@ -5,13 +5,12 @@ import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
-import edu.wpi.first.wpilibj2.command.button.RobotModeTriggers;
 import frc.lib.FaultsTable.Fault;
 import frc.lib.FaultsTable.FaultType;
 import java.util.HashSet;
 import java.util.Set;
 
-public class AdvancedSubsystem extends SubsystemBase implements SelfChecked {
+public class AdvancedSubsystem extends SubsystemBase implements SelfChecked, AutoCloseable {
   // faults and the table containing them
   private Set<Fault> _faults = new HashSet<Fault>();
   private FaultsTable _faultsTable =
@@ -20,9 +19,7 @@ public class AdvancedSubsystem extends SubsystemBase implements SelfChecked {
 
   private boolean _hasError = false;
 
-  public AdvancedSubsystem() {
-    RobotModeTriggers.test().onFalse(runOnce(this::clearFaults));
-  }
+  public AdvancedSubsystem() {}
 
   /** Clears this subsystem's faults. */
   protected final void clearFaults() {
@@ -60,6 +57,9 @@ public class AdvancedSubsystem extends SubsystemBase implements SelfChecked {
 
     return selfCheck;
   }
+
+  @Override
+  public void close() throws Exception {}
 
   @Override
   public void periodic() {
