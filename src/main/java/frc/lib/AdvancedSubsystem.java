@@ -23,14 +23,6 @@ public abstract class AdvancedSubsystem extends SubsystemBase
 
   public AdvancedSubsystem() {}
 
-  /** Clears this subsystem's faults. */
-  protected final void clearFaults() {
-    _faults.clear();
-    _faultsTable.set(_faults);
-
-    _hasError = false;
-  }
-
   /** Adds a new fault under this subsystem. */
   protected final void addFault(String description, FaultType faultType) {
     _hasError = (faultType == FaultType.ERROR);
@@ -41,9 +33,22 @@ public abstract class AdvancedSubsystem extends SubsystemBase
     _faultsTable.set(_faults);
   }
 
+  /** Clears this subsystem's faults. */
+  public final void clearFaults() {
+    _faults.clear();
+    _faultsTable.set(_faults);
+
+    _hasError = false;
+  }
+
   /** Returns the faults belonging to this subsystem. */
   public final Set<Fault> getFaults() {
     return _faults;
+  }
+
+  /** Returns whether this subsystem contains the following fault. */
+  public final boolean hasFault(String description, FaultType faultType) {
+    return _faults.contains(new Fault(description, faultType));
   }
 
   /** Returns whether this subsystem has errors (has fault type of error). */

@@ -6,10 +6,14 @@ package frc.lib;
 
 import static edu.wpi.first.wpilibj2.command.Commands.*;
 import static frc.lib.UnitTestingUtil.*;
+import static frc.lib.UnitTestingUtil.run;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import dev.doglog.DogLog;
+import dev.doglog.DogLogOptions;
+import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj2.command.Command;
-import frc.lib.FaultsTable.Fault;
 import frc.lib.FaultsTable.FaultType;
 import java.util.function.BiConsumer;
 import org.junit.jupiter.api.AfterEach;
@@ -39,15 +43,66 @@ public class AdvancedSubsystemTest {
   }
 
   @Test
-  public void subsystemSelfCheck() {
+  public void addFault() {
+    _sub.addFault("FAULT 1", FaultType.ERROR);
+
+    assertEquals(_sub.getFaults().size(), 1, DELTA);
+
+    assert _sub.hasFault("FAULT 1", FaultType.ERROR);
+  }
+
+  @Test
+  public void duplicateFaults() {
+    _sub.addFault("Fault 1", FaultType.ERROR);
+    _sub.addFault("Fault 1", FaultType.ERROR);
+
+    assertEquals(_sub.getFaults().size(), 1, DELTA);
+  }
+
+  @Test
+  public void clearFaults() {
+    _sub.addFault("FAULT 1", FaultType.WARNING);
+    _sub.addFault("FAULT 2", FaultType.ERROR);
+
+    _sub.clearFaults();
+
+    assertEquals(_sub.getFaults().size(), 0, DELTA);
+  }
+
+  @Test
+  public void hasError() {
+    _sub.addFault("FAULT 1", FaultType.ERROR);
+
+    assert _sub.hasError();
+  }
+
+  @Test
+  public void selfCheckFinish() {
     runToCompletion(_sub.fullSelfCheck());
 
-    // should give FAULT 1 error
-    assert _sub.hasError();
+    // should give FAULT 3 error
+    assertEquals(_sub.getFaults().size(), 3, DELTA);
 
-    // should only give FAULT 1 error and stop there
-    assert _sub.getFaults().contains(new Fault("FAULT 1", FaultType.ERROR));
-    assert !_sub.getFaults().contains(new Fault("FAULT 2", FaultType.ERROR));
+    // should contain these faults
+    assert _sub.hasFault("FAULT 1", FaultType.WARNING);
+    assert _sub.hasFault("FAULT 2", FaultType.WARNING);
+    assert _sub.hasFault("FAULT 3", FaultType.ERROR);
+  }
+
+  @Test
+  public void currentCommandName() {
+    DogLog.setOptions(new DogLogOptions().withNtPublish(true));
+
+    var name =
+        NetworkTableInstance.getDefault()
+            .getTable("/Robot/TestImpl")
+            .getStringTopic("Current Command")
+            .subscribe("");
+    var test = idle(_sub).withName("Test Command");
+
+    run(test, 3);
+
+    assertEquals("Test Command", name.get());
   }
 
   public class TestImpl extends AdvancedSubsystem {
@@ -61,7 +116,7 @@ public class AdvancedSubsystemTest {
     private class TestIO implements BaseIO {
       private final boolean _fault1 = true;
       private final boolean _fault2 = true;
-      private final boolean _fault3 = false;
+      private final boolean _fault3 = true;
 
       @Override
       public double getEncoderSpeed() {
@@ -69,19 +124,19 @@ public class AdvancedSubsystemTest {
       }
 
       @Override
-      public Command selfCheck(BiConsumer<String, FaultType> faultAdder) {
-        return sequence(
+      public Command selfCheck(BiConsumer<String, FaultType> faults) {
+        return shiftSequence(
             runOnce(
                 () -> {
-                  if (_fault1) faultAdder.accept("FAULT 1", FaultType.ERROR);
+                  if (_fault1) faults.accept("FAULT 1", FaultType.WARNING);
                 }),
             runOnce(
                 () -> {
-                  if (_fault2) faultAdder.accept("FAULT 2", FaultType.ERROR);
+                  if (_fault2) faults.accept("FAULT 2", FaultType.WARNING);
                 }),
             runOnce(
                 () -> {
-                  if (_fault3) faultAdder.accept("FAULT 3", FaultType.WARNING);
+                  if (_fault3) faults.accept("FAULT 3", FaultType.ERROR);
                 }));
       }
     }
@@ -92,12 +147,12 @@ public class AdvancedSubsystemTest {
     }
 
     @Override
-    public Command selfCheck(BiConsumer<String, FaultType> faultAdder) {
-      return sequence(
-          _io.selfCheck(faultAdder), // self check io devices first
+    public Command selfCheck(BiConsumer<String, FaultType> faults) {
+      return shiftSequence(
+          _io.selfCheck(faults), // self check io devices first
           runOnce(
               () -> {
-                if (speed() < 2) faultAdder.accept("TOO SLOW", FaultType.WARNING);
+                if (speed() < 2) faults.accept("TOO SLOW", FaultType.WARNING);
               }) // then check the whole subsystem
           );
     }
