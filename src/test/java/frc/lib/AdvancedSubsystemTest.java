@@ -4,10 +4,12 @@
 
 package frc.lib;
 
+import static edu.wpi.first.wpilibj2.command.Commands.*;
 import static frc.lib.UnitTestingUtil.*;
 
+import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj2.command.Command;
-import edu.wpi.first.wpilibj2.command.Commands;
+import frc.lib.FaultsTable.Fault;
 import frc.lib.FaultsTable.FaultType;
 import java.util.function.BiConsumer;
 import org.junit.jupiter.api.AfterEach;
@@ -17,21 +19,35 @@ import org.junit.jupiter.api.Test;
 public class AdvancedSubsystemTest {
   static final double DELTA = 1e-2; // acceptable deviation range
 
-  private TestImpl sub = new TestImpl();
+  private TestImpl _sub;
 
   @BeforeEach
   public void setup() {
     setupTests();
+
+    _sub = new TestImpl();
   }
 
   @AfterEach
   public void close() throws Exception {
-    reset(sub);
+    reset(_sub);
+  }
+
+  @Test
+  public void robotIsEnabled() {
+    assert DriverStation.isEnabled();
   }
 
   @Test
   public void subsystemSelfCheck() {
-    // TODO
+    runToCompletion(_sub.fullSelfCheck());
+
+    // should give FAULT 1 error
+    assert _sub.hasError();
+
+    // should only give FAULT 1 error and stop there
+    assert _sub.getFaults().contains(new Fault("FAULT 1", FaultType.ERROR));
+    assert !_sub.getFaults().contains(new Fault("FAULT 2", FaultType.ERROR));
   }
 
   public class TestImpl extends AdvancedSubsystem {
@@ -54,16 +70,16 @@ public class AdvancedSubsystemTest {
 
       @Override
       public Command selfCheck(BiConsumer<String, FaultType> faultAdder) {
-        return Commands.sequence(
-            Commands.runOnce(
+        return sequence(
+            runOnce(
                 () -> {
                   if (_fault1) faultAdder.accept("FAULT 1", FaultType.ERROR);
                 }),
-            Commands.runOnce(
+            runOnce(
                 () -> {
                   if (_fault2) faultAdder.accept("FAULT 2", FaultType.ERROR);
                 }),
-            Commands.runOnce(
+            runOnce(
                 () -> {
                   if (_fault3) faultAdder.accept("FAULT 3", FaultType.WARNING);
                 }));
@@ -77,7 +93,7 @@ public class AdvancedSubsystemTest {
 
     @Override
     public Command selfCheck(BiConsumer<String, FaultType> faultAdder) {
-      return Commands.sequence(
+      return sequence(
           _io.selfCheck(faultAdder), // self check io devices first
           runOnce(
               () -> {
@@ -85,5 +101,8 @@ public class AdvancedSubsystemTest {
               }) // then check the whole subsystem
           );
     }
+
+    @Override
+    public void close() throws Exception {}
   }
 }

@@ -1,7 +1,8 @@
 package frc.lib;
 
+import static edu.wpi.first.wpilibj2.command.Commands.*;
+
 import edu.wpi.first.wpilibj2.command.Command;
-import edu.wpi.first.wpilibj2.command.Commands;
 import frc.lib.FaultsTable.FaultType;
 import java.util.function.BiConsumer;
 
@@ -13,6 +14,6 @@ public interface SelfChecked {
    *     type.
    */
   public default Command selfCheck(BiConsumer<String, FaultType> faultAdder) {
-    return Commands.none();
+    return none();
   }
 }

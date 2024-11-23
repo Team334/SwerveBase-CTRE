@@ -1,16 +1,18 @@
 package frc.lib;
 
+import static edu.wpi.first.wpilibj2.command.Commands.*;
+
 import dev.doglog.DogLog;
 import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.wpilibj2.command.Command;
-import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.lib.FaultsTable.Fault;
 import frc.lib.FaultsTable.FaultType;
 import java.util.HashSet;
 import java.util.Set;
 
-public class AdvancedSubsystem extends SubsystemBase implements SelfChecked, AutoCloseable {
+public abstract class AdvancedSubsystem extends SubsystemBase
+    implements SelfChecked, AutoCloseable {
   // faults and the table containing them
   private Set<Fault> _faults = new HashSet<Fault>();
   private FaultsTable _faultsTable =
@@ -31,12 +33,17 @@ public class AdvancedSubsystem extends SubsystemBase implements SelfChecked, Aut
 
   /** Adds a new fault under this subsystem. */
   protected final void addFault(String description, FaultType faultType) {
+    _hasError = (faultType == FaultType.ERROR);
+
     Fault fault = new Fault(description, faultType);
 
     _faults.add(fault);
     _faultsTable.set(_faults);
+  }
 
-    _hasError = faultType == FaultType.ERROR;
+  /** Returns the faults belonging to this subsystem. */
+  public final Set<Fault> getFaults() {
+    return _faults;
   }
 
   /** Returns whether this subsystem has errors (has fault type of error). */
@@ -47,19 +54,11 @@ public class AdvancedSubsystem extends SubsystemBase implements SelfChecked, Aut
   /** Returns a full Command that self checks this Subsystem for pre-match. */
   public final Command fullSelfCheck() {
     Command selfCheck =
-        Commands.sequence(
-                runOnce(
-                    this::clearFaults), // clear all faults and hasError (also adds this subsystem
-                // as a requirement)
-                selfCheck(this::addFault).until(this::hasError) // self check this subsystem
-                )
+        sequence(runOnce(this::clearFaults), selfCheck(this::addFault).until(this::hasError))
             .withName(getName() + " Self Check");
 
     return selfCheck;
   }
-
-  @Override
-  public void close() throws Exception {}
 
   @Override
   public void periodic() {

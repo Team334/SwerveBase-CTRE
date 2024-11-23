@@ -17,7 +17,18 @@ public class FaultsTable {
   private final StringArrayPublisher infos;
 
   /** An individual fault, containing necessary information. */
-  public static record Fault(String description, FaultType type) {}
+  public static record Fault(String description, FaultType type) {
+    @Override
+    public final boolean equals(Object other) {
+      if (other == this) return true;
+
+      if (other instanceof Fault o) {
+        return o.description == description && o.type == type;
+      }
+
+      return false;
+    }
+  }
 
   /**
    * The type of fault, used for detecting whether the fallible is in a failure state and displaying
@@ -26,7 +37,7 @@ public class FaultsTable {
   public static enum FaultType {
     INFO,
     WARNING,
-    ERROR,
+    ERROR
   }
 
   public FaultsTable(NetworkTable base, String name) {

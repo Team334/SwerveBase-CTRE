@@ -4,6 +4,7 @@ import static edu.wpi.first.units.Units.Seconds;
 
 import edu.wpi.first.hal.HAL;
 import edu.wpi.first.units.measure.Time;
+import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.simulation.DriverStationSim;
 import edu.wpi.first.wpilibj.simulation.SimHooks;
 import edu.wpi.first.wpilibj2.command.Command;
@@ -18,11 +19,15 @@ public class UnitTestingUtil {
   /** Sets up DS and initializes HAL with default values and asserts that it doesn't fail. */
   public static void setupTests() {
     assert HAL.initialize(500, 0);
+
     DriverStationSim.setEnabled(true);
-    DriverStationSim.setTest(true);
     DriverStationSim.notifyNewData();
+
     FaultLogger.clear();
     FaultLogger.unregisterAll();
+
+    // delay 100 ms to wait for CTRE device enable
+    Timer.delay(0.100);
   }
 
   /**
@@ -97,7 +102,9 @@ public class UnitTestingUtil {
    */
   public static void runToCompletion(Command command) {
     command.schedule();
+
     fastForward(1);
+
     while (command.isScheduled()) {
       fastForward(1);
     }
