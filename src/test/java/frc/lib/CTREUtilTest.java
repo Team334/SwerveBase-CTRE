@@ -74,10 +74,10 @@ public class CTREUtilTest {
     assert FaultLogger.totalFaults()
         .contains(
             new Fault(
-                name + ": Config Apply Failed - " + StatusCode.ConfigFailed.getDescription(),
+                name + " - Config Apply Failed - " + StatusCode.ConfigFailed.getDescription(),
                 FaultType.ERROR));
 
     assert FaultLogger.totalFaults()
-        .contains(new Fault(name + ": Config Apply Successful.", FaultType.INFO));
+        .contains(new Fault(name + " - Config Apply Successful.", FaultType.INFO));
   }
 }

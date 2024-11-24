@@ -29,6 +29,8 @@ public abstract class AdvancedSubsystem extends SubsystemBase
 
     Fault fault = new Fault(description, faultType);
 
+    DogLog.logFault(fault.toString());
+
     _faults.add(fault);
     _faultsTable.set(_faults);
   }

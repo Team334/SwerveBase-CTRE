@@ -28,6 +28,11 @@ public class FaultsTable {
 
       return false;
     }
+
+    @Override
+    public final String toString() {
+      return "Fault - " + description + ", Type - " + type.toString();
+    }
   }
 
   /**

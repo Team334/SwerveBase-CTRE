@@ -63,7 +63,7 @@ public final class FaultLogger {
     newFaults.clear();
 
     // log to doglog as well
-    activeFaults.forEach(f -> DogLog.logFault(f.description()));
+    activeFaults.forEach(f -> DogLog.logFault(f.toString()));
 
     totalFaults.addAll(activeFaults);
 
@@ -164,22 +164,22 @@ public final class FaultLogger {
     String name = CTREUtil.getName(talonFX);
 
     register(
-        () -> talonFX.getFault_Hardware().getValue(), name + ": Hardware Fault.", FaultType.ERROR);
+        () -> talonFX.getFault_Hardware().getValue(), name + "- Hardware Fault.", FaultType.ERROR);
     register(
         () -> talonFX.getFault_BootDuringEnable().getValue(),
-        name + ": Boot While Enabling.",
+        name + "- Boot While Enabling.",
         FaultType.WARNING);
     register(
         () -> talonFX.getFault_DeviceTemp().getValue(),
-        name + ": Device Temperature Too High.",
+        name + "- Device Temperature Too High.",
         FaultType.WARNING);
     register(
         () -> talonFX.getFault_ProcTemp().getValue(),
-        name + ": Processor Temp Too High.",
+        name + "- Processor Temp Too High.",
         FaultType.WARNING);
     register(
         () -> talonFX.getFault_Undervoltage().getValue(),
-        name + ": Voltage Too Low, Check For Brownouts.",
+        name + "- Voltage Too Low, Check For Brownouts.",
         FaultType.WARNING);
   }
 
@@ -192,18 +192,18 @@ public final class FaultLogger {
     String name = CTREUtil.getName(cancoder);
 
     register(
-        () -> cancoder.getFault_Hardware().getValue(), name + ": Hardware Fault.", FaultType.ERROR);
+        () -> cancoder.getFault_Hardware().getValue(), name + "- Hardware Fault.", FaultType.ERROR);
     register(
         () -> cancoder.getFault_BadMagnet().getValue(),
-        name + ": Bad Magnet Signal.",
+        name + "- Bad Magnet Signal.",
         FaultType.ERROR);
     register(
         () -> cancoder.getFault_BootDuringEnable().getValue(),
-        name + ": Boot While Enabling.",
+        name + "- Boot While Enabling.",
         FaultType.WARNING);
     register(
         () -> cancoder.getFault_Undervoltage().getValue(),
-        name + ": Voltage Too Low, Check For Brownouts.",
+        name + "- Voltage Too Low, Check For Brownouts.",
         FaultType.WARNING);
   }
 
@@ -216,14 +216,14 @@ public final class FaultLogger {
     String name = CTREUtil.getName(pigeon);
 
     register(
-        () -> pigeon.getFault_Hardware().getValue(), name + ": Hardware Fault.", FaultType.ERROR);
+        () -> pigeon.getFault_Hardware().getValue(), name + "- Hardware Fault.", FaultType.ERROR);
     register(
         () -> pigeon.getFault_BootDuringEnable().getValue(),
-        name + ": Boot While Enabling.",
+        name + "- Boot While Enabling.",
         FaultType.WARNING);
     register(
         () -> pigeon.getFault_Undervoltage().getValue(),
-        name + ": Voltage Too Low, Check For Brownouts.",
+        name + "- Voltage Too Low, Check For Brownouts.",
         FaultType.WARNING);
   }
 

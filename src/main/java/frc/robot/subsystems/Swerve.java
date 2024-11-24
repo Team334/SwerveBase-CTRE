@@ -196,6 +196,8 @@ public class Swerve extends SwerveDrivetrain implements Subsystem, SelfChecked {
 
     Fault fault = new Fault(description, faultType);
 
+    DogLog.logFault(fault.toString());
+
     _faults.add(fault);
     _faultsTable.set(_faults);
   }

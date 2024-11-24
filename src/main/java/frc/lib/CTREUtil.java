@@ -36,14 +36,14 @@ public class CTREUtil {
 
     // successful attempt
     if (statusCode.isOK()) {
-      FaultLogger.report(deviceName + ": Config Apply Successful.", FaultType.INFO);
+      FaultLogger.report(deviceName + " - Config Apply Successful.", FaultType.INFO);
       return false;
     }
 
     // failed attempt
     else {
       FaultLogger.report(
-          deviceName + ": Config Apply Failed - " + statusCode.getDescription(), FaultType.ERROR);
+          deviceName + " - Config Apply Failed - " + statusCode.getDescription(), FaultType.ERROR);
       return true;
     }
   }
