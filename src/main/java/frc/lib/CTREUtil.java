@@ -43,7 +43,7 @@ public class CTREUtil {
     // failed attempt
     else {
       FaultLogger.report(
-          deviceName + ": Config Apply Failed: " + statusCode.getDescription(), FaultType.ERROR);
+          deviceName + ": Config Apply Failed - " + statusCode.getDescription(), FaultType.ERROR);
       return true;
     }
   }

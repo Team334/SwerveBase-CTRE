@@ -14,6 +14,7 @@ import dev.doglog.DogLogOptions;
 import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj2.command.Command;
+import frc.lib.FaultsTable.Fault;
 import frc.lib.FaultsTable.FaultType;
 import java.util.function.BiConsumer;
 import org.junit.jupiter.api.AfterEach;
@@ -52,9 +53,17 @@ public class AdvancedSubsystemTest {
   }
 
   @Test
+  public void faultEquality() {
+    Fault f1 = new Fault("FAULT 1", FaultType.ERROR);
+    Fault f2 = new Fault("FAULT 1", FaultType.ERROR);
+
+    assert f1.equals(f2);
+  }
+
+  @Test
   public void duplicateFaults() {
-    _sub.addFault("Fault 1", FaultType.ERROR);
-    _sub.addFault("Fault 1", FaultType.ERROR);
+    _sub.addFault("FAULT 1", FaultType.ERROR);
+    _sub.addFault("FAULT 1", FaultType.ERROR);
 
     assertEquals(_sub.getFaults().size(), 1, DELTA);
   }

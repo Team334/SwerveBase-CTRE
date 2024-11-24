@@ -23,7 +23,7 @@ public class FaultsTable {
       if (other == this) return true;
 
       if (other instanceof Fault o) {
-        return o.description == description && o.type == type;
+        return o.description.equals(description) && o.type.equals(type);
       }
 
       return false;

@@ -30,6 +30,12 @@ public class UnitTestingUtil {
     Timer.delay(0.100);
   }
 
+  /** Resets the CommandScheduler. */
+  public static void reset() {
+    CommandScheduler.getInstance().unregisterAllSubsystems();
+    CommandScheduler.getInstance().cancelAll();
+  }
+
   /**
    * Resets CommandScheduler and closes all subsystems. Please call in an @AfterEach method!
    *
