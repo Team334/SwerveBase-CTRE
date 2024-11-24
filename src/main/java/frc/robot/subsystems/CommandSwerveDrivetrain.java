@@ -244,15 +244,13 @@ public class CommandSwerveDrivetrain extends SwerveDrivetrain implements Subsyst
     ChassisSpeeds tempSpeeds = _driverChassisSpeeds;
     SwerveModuleState[] tempStates;
 
-    if (_isFieldOriented)
-      tempSpeeds = ChassisSpeeds.fromFieldRelativeSpeeds(tempSpeeds, getHeading());
+    if (_isFieldOriented) tempSpeeds.toRobotRelativeSpeeds(getHeading());
 
     tempStates = getKinematics().toSwerveModuleStates(tempSpeeds);
     SwerveDriveKinematics.desaturateWheelSpeeds(tempStates, SwerveConstants.maxTranslationalSpeed);
     tempSpeeds = getKinematics().toChassisSpeeds(tempStates);
 
-    if (_isFieldOriented)
-      tempSpeeds = ChassisSpeeds.fromRobotRelativeSpeeds(tempSpeeds, getHeading());
+    if (_isFieldOriented) tempSpeeds.toFieldRelativeSpeeds(getHeading());
 
     velX = tempSpeeds.vxMetersPerSecond;
     velY = tempSpeeds.vyMetersPerSecond;
