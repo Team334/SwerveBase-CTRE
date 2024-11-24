@@ -5,6 +5,7 @@
 package frc.robot.subsystems;
 
 import static edu.wpi.first.units.Units.*;
+import static edu.wpi.first.wpilibj2.command.Commands.*;
 
 import com.ctre.phoenix6.SignalLogger;
 import com.ctre.phoenix6.Utils;
@@ -22,6 +23,7 @@ import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.kinematics.SwerveDriveKinematics;
 import edu.wpi.first.math.kinematics.SwerveModuleState;
+import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.wpilibj.Notifier;
 import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj.RobotController;
@@ -30,14 +32,28 @@ import edu.wpi.first.wpilibj2.command.Subsystem;
 import edu.wpi.first.wpilibj2.command.button.RobotModeTriggers;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
 import frc.lib.FaultLogger;
+import frc.lib.FaultsTable;
+import frc.lib.FaultsTable.Fault;
+import frc.lib.FaultsTable.FaultType;
 import frc.lib.InputStream;
 import frc.lib.SelfChecked;
 import frc.robot.Constants;
 import frc.robot.Constants.SwerveConstants;
 import frc.robot.utils.SysId;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.function.BiConsumer;
 
 @Logged(strategy = Strategy.OPT_IN)
-public class CommandSwerveDrivetrain extends SwerveDrivetrain implements Subsystem, SelfChecked {
+public class Swerve extends SwerveDrivetrain implements Subsystem, SelfChecked {
+  // faults and the table containing them
+  private Set<Fault> _faults = new HashSet<Fault>();
+  private FaultsTable _faultsTable =
+      new FaultsTable(
+          NetworkTableInstance.getDefault().getTable("Self Check"), getName() + " Faults");
+
+  private boolean _hasError = false;
+
   // teleop requests
   private final RobotCentric _robotCentricRequest = new RobotCentric();
   private final FieldCentric _fieldCentricRequest = new FieldCentric();
@@ -117,7 +133,7 @@ public class CommandSwerveDrivetrain extends SwerveDrivetrain implements Subsyst
    *     across all modules (PID constants, wheel radius, etc), and constants unique to each module
    *     (location, device ids, etc).
    */
-  public CommandSwerveDrivetrain(
+  public Swerve(
       SwerveDrivetrainConstants drivetrainConstants, SwerveModuleConstants... moduleConstants) {
     super(drivetrainConstants, SwerveConstants.odometryFrequency.in(Hertz), moduleConstants);
 
@@ -170,6 +186,50 @@ public class CommandSwerveDrivetrain extends SwerveDrivetrain implements Subsyst
     registerFallibles();
 
     if (RobotBase.isSimulation()) startSimThread();
+  }
+
+  // COPIED FROM ADVANCED SUBSYSTEM
+
+  /** Adds a new fault under this subsystem. */
+  private final void addFault(String description, FaultType faultType) {
+    _hasError = (faultType == FaultType.ERROR);
+
+    Fault fault = new Fault(description, faultType);
+
+    _faults.add(fault);
+    _faultsTable.set(_faults);
+  }
+
+  /** Clears this subsystem's faults. */
+  public final void clearFaults() {
+    _faults.clear();
+    _faultsTable.set(_faults);
+
+    _hasError = false;
+  }
+
+  /** Returns the faults belonging to this subsystem. */
+  public final Set<Fault> getFaults() {
+    return _faults;
+  }
+
+  /** Returns whether this subsystem contains the following fault. */
+  public final boolean hasFault(String description, FaultType faultType) {
+    return _faults.contains(new Fault(description, faultType));
+  }
+
+  /** Returns whether this subsystem has errors (has fault type of error). */
+  public final boolean hasError() {
+    return _hasError;
+  }
+
+  /** Returns a full Command that self checks this Subsystem for pre-match. */
+  public final Command fullSelfCheck() {
+    Command selfCheck =
+        sequence(runOnce(this::clearFaults), selfCheck(this::addFault).until(this::hasError))
+            .withName(getName() + " Self Check");
+
+    return selfCheck;
   }
 
   private void registerFallibles() {
@@ -311,6 +371,26 @@ public class CommandSwerveDrivetrain extends SwerveDrivetrain implements Subsyst
 
   @Override
   public void periodic() {
-    // This method will be called once per scheduler run
+    String currentCommandName = "None";
+
+    if (getCurrentCommand() != null) {
+      currentCommandName = getCurrentCommand().getName();
+    }
+
+    DogLog.log(getName() + "/Current Command", currentCommandName);
+  }
+
+  private Command selfCheckModule(String name, SwerveModule module) {
+    return shiftSequence();
+  }
+
+  @Override
+  public Command selfCheck(BiConsumer<String, FaultType> faults) {
+    return shiftSequence(
+        // check all modules individually
+        selfCheckModule("Front Left", getModule(0)),
+        selfCheckModule("Front Right", getModule(1)),
+        selfCheckModule("Back Left", getModule(2)),
+        selfCheckModule("Back Right", getModule(3)));
   }
 }

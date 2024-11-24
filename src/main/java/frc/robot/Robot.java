@@ -27,7 +27,7 @@ import frc.robot.Constants.Ports;
 import frc.robot.Constants.SwerveConstants;
 import frc.robot.commands.Autos;
 import frc.robot.generated.TunerConstants;
-import frc.robot.subsystems.CommandSwerveDrivetrain;
+import frc.robot.subsystems.Swerve;
 
 /**
  * The methods in this class are called automatically corresponding to each mode, as described in
@@ -42,7 +42,7 @@ public class Robot extends TimedRobot {
 
   // subsystems
   @Logged(name = "Swerve")
-  private CommandSwerveDrivetrain _swerve = TunerConstants.createDrivetrain();
+  private Swerve _swerve = TunerConstants.createDrivetrain();
 
   private Command _autonomousCommand = Autos.none();
 
@@ -63,8 +63,10 @@ public class Robot extends TimedRobot {
     SmartDashboard.putData(
         "Robot Self Check",
         sequence(
-            runOnce(() -> DataLogManager.log("Robot Self Check Started!")),
-            runOnce(() -> DataLogManager.log("Robot Self Check Successful!"))));
+                runOnce(() -> DataLogManager.log("Robot Self Check Started!")),
+                _swerve.fullSelfCheck(),
+                runOnce(() -> DataLogManager.log("Robot Self Check Successful!")))
+            .withName("Robot Self Check"));
 
     addPeriodic(FaultLogger::update, 1);
   }
