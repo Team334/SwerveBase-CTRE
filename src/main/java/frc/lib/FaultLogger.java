@@ -36,6 +36,8 @@ public final class FaultLogger {
     void report();
   }
 
+  private static boolean _enableConsole = true;
+
   // DATA
   private static final List<FaultReporter> faultReporters = new ArrayList<>();
   private static final Set<Fault> newFaults = new HashSet<>();
@@ -46,6 +48,11 @@ public final class FaultLogger {
   private static final NetworkTable base = NetworkTableInstance.getDefault().getTable("Faults");
   private static final FaultsTable activeAlerts = new FaultsTable(base, "Active Faults");
   private static final FaultsTable totalAlerts = new FaultsTable(base, "Total Faults");
+
+  /** Whether or not to print new faults into the console. */
+  public static void enableConsole(boolean enable) {
+    _enableConsole = enable;
+  }
 
   /** Polls registered fallibles. This method should be called periodically. */
   public static void update() {
@@ -104,6 +111,8 @@ public final class FaultLogger {
    */
   public static void report(Fault fault) {
     newFaults.add(fault);
+
+    if (!_enableConsole) return;
 
     switch (fault.type()) {
       case ERROR -> DriverStation.reportError(fault.toString(), false);

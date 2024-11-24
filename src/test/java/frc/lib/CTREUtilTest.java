@@ -5,6 +5,8 @@ import static frc.lib.UnitTestingUtil.setupTests;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import com.ctre.phoenix6.StatusCode;
+import com.ctre.phoenix6.hardware.CANcoder;
+import com.ctre.phoenix6.hardware.Pigeon2;
 import com.ctre.phoenix6.hardware.TalonFX;
 import frc.lib.FaultsTable.Fault;
 import frc.lib.FaultsTable.FaultType;
@@ -14,12 +16,16 @@ import org.junit.jupiter.api.Test;
 
 public class CTREUtilTest {
   private TalonFX _motor;
+  private Pigeon2 _gyro;
+  private CANcoder _encoder;
 
   @BeforeEach
   public void setup() {
     setupTests();
 
     _motor = new TalonFX(1);
+    _gyro = new Pigeon2(2);
+    _encoder = new CANcoder(3);
   }
 
   @AfterEach
@@ -27,6 +33,8 @@ public class CTREUtilTest {
     reset();
 
     _motor.close();
+    _encoder.close();
+    _gyro.close();
   }
 
   @Test
@@ -37,12 +45,29 @@ public class CTREUtilTest {
   }
 
   @Test
-  public void motorAttempt() {
-    var name = CTREUtil.getName(_motor);
+  public void gyroName() {
+    var name = CTREUtil.getName(_gyro);
 
-    var failed = CTREUtil.attempt(() -> StatusCode.ConfigFailed, _motor);
+    assertEquals(name, "Pigeon (2)");
+  }
 
-    assert failed;
+  @Test
+  public void encoderName() {
+    var name = CTREUtil.getName(_encoder);
+
+    assertEquals(name, "CANcoder (3)");
+  }
+
+  @Test
+  public void attempt() {
+    // if all names work then, attempt will work for any device
+    var name = "TalonFX (3)";
+
+    var failed1 = CTREUtil.attempt(() -> StatusCode.ConfigFailed, name);
+    var failed2 = CTREUtil.attempt(() -> StatusCode.OK, name);
+
+    assert failed1;
+    assert !failed2;
 
     FaultLogger.update();
 
@@ -51,5 +76,8 @@ public class CTREUtilTest {
             new Fault(
                 name + ": Config Apply Failed - " + StatusCode.ConfigFailed.getDescription(),
                 FaultType.ERROR));
+
+    assert FaultLogger.totalFaults()
+        .contains(new Fault(name + ": Config Apply Successful.", FaultType.INFO));
   }
 }

@@ -25,6 +25,7 @@ public class UnitTestingUtil {
 
     FaultLogger.clear();
     FaultLogger.unregisterAll();
+    FaultLogger.enableConsole(false);
 
     // delay 100 ms to wait for CTRE device enable
     Timer.delay(0.100);
