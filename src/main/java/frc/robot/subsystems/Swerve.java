@@ -29,7 +29,6 @@ import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj.RobotController;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Subsystem;
-import edu.wpi.first.wpilibj2.command.button.RobotModeTriggers;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
 import frc.lib.FaultLogger;
 import frc.lib.FaultsTable;
@@ -163,22 +162,6 @@ public class Swerve extends SwerveDrivetrain implements Subsystem, SelfChecked {
           DogLog.log("Swerve/Odometry Period", state.OdometryPeriod);
         });
 
-    // TODO: idk if this will conflict with the actual scheduled commands
-    RobotModeTriggers.autonomous()
-        .onTrue(
-            runOnce(
-                () -> {
-                  _isFieldOriented = false;
-                  _isOpenLoop = false;
-                }));
-    RobotModeTriggers.teleop()
-        .onTrue(
-            runOnce(
-                () -> {
-                  _isFieldOriented = true;
-                  _isOpenLoop = true;
-                }));
-
     // display all sysid routines
     SysId.displayRoutine("Swerve Translation", _sysIdRoutineTranslation);
     SysId.displayRoutine("Swerve Steer", _sysIdRoutineSteer);
@@ -288,6 +271,11 @@ public class Swerve extends SwerveDrivetrain implements Subsystem, SelfChecked {
     return run(() -> {
           drive(velX.get(), velY.get(), velOmega.get());
         })
+        .beforeStarting(
+            () -> {
+              _isFieldOriented = true;
+              _isOpenLoop = false;
+            })
         .withName("Drive");
   }
 
@@ -395,5 +383,12 @@ public class Swerve extends SwerveDrivetrain implements Subsystem, SelfChecked {
         selfCheckModule("Front Right", getModule(1)),
         selfCheckModule("Back Left", getModule(2)),
         selfCheckModule("Back Right", getModule(3)));
+  }
+
+  @Override
+  public void close() {
+    super.close();
+
+    _simNotifier.close();
   }
 }
