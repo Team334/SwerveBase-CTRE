@@ -115,9 +115,9 @@ public final class FaultLogger {
     if (!_enableConsole) return;
 
     switch (fault.type()) {
-      case ERROR -> DriverStation.reportError(fault.toString(), false);
-      case WARNING -> DriverStation.reportWarning(fault.toString(), false);
-      case INFO -> System.out.println(fault.toString());
+      case ERROR -> DriverStation.reportError("[Fault Logger] " + fault.toString(), false);
+      case WARNING -> DriverStation.reportWarning("[Fault Logger] " + fault.toString(), false);
+      case INFO -> System.out.println("[FaultLogger] " + fault.toString());
     }
   }
 

@@ -150,6 +150,7 @@ public class Swerve extends SwerveDrivetrain implements Subsystem, SelfChecked {
     registerTelemetry(
         state -> {
           DogLog.log("Swerve/Pose", state.Pose);
+          DogLog.log("Swerve/Raw Heading", state.RawHeading);
           DogLog.log("Swerve/Speeds", state.Speeds);
           DogLog.log("Swerve/Desired Speeds", getKinematics().toChassisSpeeds(state.ModuleTargets));
           DogLog.log("Swerve/Module States", state.ModuleStates);
