@@ -14,5 +14,6 @@ A base project for future robots that has CTRE generated swerve drive code and P
 - Add more unit tests.
 - Add proper licenses.
 
-## 2025 Beta Known Issues
+## 2025 Latest Beta Known Issues
 - To run sim, do `./gradlew simulateJava` instead of using the WPILib extension (for Epilogue to work).
+- Epilogue can't handle annotated inner classes (see [this](https://github.com/wpilibsuite/2025Beta/issues/54) issue) which has been fixed in [this](https://github.com/wpilibsuite/allwpilib/pull/7439) pull request for the next wpilib release. Because of this, the `VisionPoseEstimate` record is a seperate file in the `utils` folder.
