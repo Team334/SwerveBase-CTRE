@@ -3,6 +3,8 @@ package frc.lib;
 import static edu.wpi.first.wpilibj2.command.Commands.*;
 
 import dev.doglog.DogLog;
+import edu.wpi.first.epilogue.Logged;
+import edu.wpi.first.epilogue.Logged.Strategy;
 import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
@@ -11,6 +13,7 @@ import frc.lib.FaultsTable.FaultType;
 import java.util.HashSet;
 import java.util.Set;
 
+@Logged(strategy = Strategy.OPT_IN)
 public abstract class AdvancedSubsystem extends SubsystemBase
     implements SelfChecked, AutoCloseable {
   // faults and the table containing them
@@ -19,6 +22,7 @@ public abstract class AdvancedSubsystem extends SubsystemBase
       new FaultsTable(
           NetworkTableInstance.getDefault().getTable("Self Check"), getName() + " Faults");
 
+  @Logged(name = "Has Error")
   private boolean _hasError = false;
 
   public AdvancedSubsystem() {}
