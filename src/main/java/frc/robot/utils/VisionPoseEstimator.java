@@ -6,13 +6,30 @@ package frc.robot.utils;
 
 import edu.wpi.first.epilogue.Logged;
 import edu.wpi.first.epilogue.Logged.Strategy;
+import edu.wpi.first.math.geometry.Pose2d;
+import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Transform3d;
+import frc.robot.Constants.FieldConstants;
+
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
+import java.util.function.Function;
+
+import org.opencv.core.Point;
+import org.photonvision.EstimatedRobotPose;
+import org.photonvision.PhotonCamera;
+import org.photonvision.PhotonPoseEstimator;
+import org.photonvision.PhotonPoseEstimator.PoseStrategy;
 
 /** Handles pose estimation coming from a single PhotonVision camera. */
 @Logged(strategy = Strategy.OPT_IN)
 public class VisionPoseEstimator implements AutoCloseable {
+
+  private PhotonPoseEstimator _poseEstimator;
+
+  private PhotonCamera _camera;
+
   /** The camera's NT name. */
   @Logged(name = "Camera Name")
   public final String camName;
@@ -104,7 +121,30 @@ public class VisionPoseEstimator implements AutoCloseable {
     this.robotToCam = robotToCam;
     this.ambiguityThreshold = ambiguityThreshold;
     this.cameraStdDevsFactor = cameraStdDevsFactor;
+
+    _camera = new PhotonCamera(camName);
+
+    _poseEstimator = new PhotonPoseEstimator(
+      FieldConstants.fieldLayout,
+       PoseStrategy.MULTI_TAG_PNP_ON_COPROCESSOR,
+        robotToCam
+        );
+
+    _poseEstimator.setMultiTagFallbackStrategy(PoseStrategy.LOWEST_AMBIGUITY);
   }
+
+  public Optional<VisionPoseEstimate> getEstimatedPose(double latestVisionTimestamp, Function<Double, Rotation2d> hyroHeadingAtTime){
+      _latestEstimate = VisionPoseEstimate.noDetectedTags();
+
+      Optional<EstimatedRobotPose> rawEstimate = _poseEstimator.update(_camera.getLatestResult());
+      if(rawEstimate.isEmpty()) return Optional.empty();
+
+      // filter the raw restimate to check if it is valid
+
+      // calculate std devs
+
+      return Optional.of(_latestEstimate);
+  } 
 
   @Override
   public void close() throws Exception {}
