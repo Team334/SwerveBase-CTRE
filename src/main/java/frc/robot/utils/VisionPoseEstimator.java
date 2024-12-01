@@ -10,6 +10,7 @@ import edu.wpi.first.epilogue.Logged.Strategy;
 import edu.wpi.first.math.geometry.Pose3d;
 import edu.wpi.first.math.geometry.Transform3d;
 import frc.robot.Constants.FieldConstants;
+import java.util.ArrayList;
 import java.util.List;
 import org.photonvision.PhotonCamera;
 import org.photonvision.PhotonPoseEstimator;
@@ -52,7 +53,7 @@ public class VisionPoseEstimator implements AutoCloseable {
   private final String _logPath;
 
   // new estimates from last update call
-  private List<VisionPoseEstimate> _newEstimates;
+  private List<VisionPoseEstimate> _newEstimates = new ArrayList<VisionPoseEstimate>();
 
   /** Constants for a single vision pose estimator camera. */
   public record VisionPoseEstimatorConstants(
@@ -105,7 +106,7 @@ public class VisionPoseEstimator implements AutoCloseable {
   }
 
   /** Builds a new vision pose estimator from a single camera constants. */
-  public static VisionPoseEstimator buildFromCamera(VisionPoseEstimatorConstants camConstants) {
+  public static VisionPoseEstimator buildFromConstants(VisionPoseEstimatorConstants camConstants) {
     return new VisionPoseEstimator(
         camConstants.camName,
         camConstants.robotToCam,
@@ -133,7 +134,7 @@ public class VisionPoseEstimator implements AutoCloseable {
     // this is actually "closest-to-gyro" in the robot code
     _poseEstimator.setMultiTagFallbackStrategy(PoseStrategy.LOWEST_AMBIGUITY);
 
-    _logPath = "Swerve/" + camName + "/";
+    _logPath = "Swerve/" + camName + "/Estimate/";
   }
 
   // appends all the new estimates to the log file

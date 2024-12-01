@@ -38,8 +38,11 @@ import frc.lib.InputStream;
 import frc.lib.SelfChecked;
 import frc.robot.Constants;
 import frc.robot.Constants.SwerveConstants;
+import frc.robot.Constants.VisionConstants;
 import frc.robot.utils.SysId;
+import frc.robot.utils.VisionPoseEstimator;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.function.BiConsumer;
 
@@ -122,6 +125,13 @@ public class Swerve extends SwerveDrivetrain implements Subsystem, SelfChecked {
 
   @Logged(name = "Is Open Loop")
   private boolean _isOpenLoop = true;
+
+  @Logged(name = VisionConstants.leftArducamName)
+  private final VisionPoseEstimator _leftArducam =
+      VisionPoseEstimator.buildFromConstants(VisionConstants.leftArducam);
+
+  // for easy iteration with multiple cameras
+  private final List<VisionPoseEstimator> _cameras = List.of(_leftArducam);
 
   /**
    * Creates a new CommandSwerveDrivetrain.
@@ -362,6 +372,7 @@ public class Swerve extends SwerveDrivetrain implements Subsystem, SelfChecked {
 
   @Override
   public void periodic() {
+    // advanced subsystem task
     String currentCommandName = "None";
 
     if (getCurrentCommand() != null) {
@@ -369,6 +380,8 @@ public class Swerve extends SwerveDrivetrain implements Subsystem, SelfChecked {
     }
 
     DogLog.log(getName() + "/Current Command", currentCommandName);
+
+    _cameras.forEach(cam -> cam.update());
   }
 
   private Command selfCheckModule(String name, SwerveModule module) {
