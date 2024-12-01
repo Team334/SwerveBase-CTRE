@@ -5,10 +5,11 @@
 package frc.robot.commands;
 
 /**
- * Contains factory methods for commands that involve the whole superstructure of the robot (require multiple subsystems).
-*/
+ * Contains factory methods for commands that involve the whole superstructure of the robot (require
+ * multiple subsystems).
+ */
 public class Superstructure {
-    private Superstructure() {
-        throw new UnsupportedOperationException("This is a utility class!");
-    }
+  private Superstructure() {
+    throw new UnsupportedOperationException("This is a utility class!");
+  }
 }

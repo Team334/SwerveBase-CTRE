@@ -6,6 +6,8 @@ package frc.robot;
 
 import static edu.wpi.first.units.Units.*;
 
+import edu.wpi.first.apriltag.AprilTagFieldLayout;
+import edu.wpi.first.apriltag.AprilTagFields;
 import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.units.measure.Distance;
 import edu.wpi.first.units.measure.Frequency;
@@ -25,6 +27,11 @@ public final class Constants {
 
   public static class Ports {
     public static final int driverController = 0;
+  }
+
+  public static class FieldConstants {
+    public static final AprilTagFieldLayout fieldLayout =
+        AprilTagFieldLayout.loadField(AprilTagFields.k2024Crescendo);
   }
 
   public static class SwerveConstants {

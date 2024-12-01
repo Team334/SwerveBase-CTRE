@@ -4,20 +4,13 @@
 
 package frc.robot.utils;
 
+import dev.doglog.DogLog;
 import edu.wpi.first.epilogue.Logged;
 import edu.wpi.first.epilogue.Logged.Strategy;
-import edu.wpi.first.math.geometry.Pose2d;
-import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.math.geometry.Pose3d;
 import edu.wpi.first.math.geometry.Transform3d;
 import frc.robot.Constants.FieldConstants;
-
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
-import java.util.function.Function;
-
-import org.opencv.core.Point;
-import org.photonvision.EstimatedRobotPose;
 import org.photonvision.PhotonCamera;
 import org.photonvision.PhotonPoseEstimator;
 import org.photonvision.PhotonPoseEstimator.PoseStrategy;
@@ -25,11 +18,6 @@ import org.photonvision.PhotonPoseEstimator.PoseStrategy;
 /** Handles pose estimation coming from a single PhotonVision camera. */
 @Logged(strategy = Strategy.OPT_IN)
 public class VisionPoseEstimator implements AutoCloseable {
-
-  private PhotonPoseEstimator _poseEstimator;
-
-  private PhotonCamera _camera;
-
   /** The camera's NT name. */
   @Logged(name = "Camera Name")
   public final String camName;
@@ -58,9 +46,13 @@ public class VisionPoseEstimator implements AutoCloseable {
   @Logged(name = "Ignore Theta Estimate")
   public final boolean ignoreThetaEstimate = true;
 
-  // the latest vision estimate from the pose estimator
-  @Logged(name = "Latest Estimate")
-  private VisionPoseEstimate _latestEstimate = VisionPoseEstimate.noDetectedTags();
+  private final PhotonCamera _camera;
+  private final PhotonPoseEstimator _poseEstimator;
+
+  private final String _logPath;
+
+  // new estimates from last update call
+  private List<VisionPoseEstimate> _newEstimates;
 
   /** Constants for a single vision pose estimator camera. */
   public record VisionPoseEstimatorConstants(
@@ -76,6 +68,42 @@ public class VisionPoseEstimator implements AutoCloseable {
       /** The camera's std devs factor. */
       double cameraStdDevsFactor) {}
 
+  /** Represents a single vision pose estimate. */
+  public record VisionPoseEstimate(
+      /** The pose to add into the estimator. */
+      Pose3d pose,
+
+      /** The timestamp of when the frame was taken. (-1 when no tags). */
+      double timestamp,
+
+      /** The ambiguity of this measurement (-1 when no tags or when multi-tag). */
+      double ambiguity,
+
+      /** The detected tag ids in this measurement. */
+      int[] detectedTags,
+
+      /** The average distance from the tag(s) (-1 when no tags). */
+      double avgTagDistance,
+
+      /**
+       * The [xMeters, yMeters, thetaRadians] noise standard deviations of this pose estimate ([-1,
+       * -1, -1] when no tags or invalid).
+       */
+      double[] stdDevs,
+
+      /** Whether this estimate passed the filter or not. */
+      boolean isValid) {
+
+    /**
+     * Returns a vision pose estimate that represents an estimate with no detected tags (or camera
+     * was disconnected).
+     */
+    public static final VisionPoseEstimate noDetectedTags() {
+      return new VisionPoseEstimate(
+          new Pose3d(), -1, -1, new int[0], -1, new double[] {-1, -1, -1}, false);
+    }
+  }
+
   /** Builds a new vision pose estimator from a single camera constants. */
   public static VisionPoseEstimator buildFromCamera(VisionPoseEstimatorConstants camConstants) {
     return new VisionPoseEstimator(
@@ -83,32 +111,6 @@ public class VisionPoseEstimator implements AutoCloseable {
         camConstants.robotToCam,
         camConstants.ambiguityThreshold,
         camConstants.cameraStdDevsFactor);
-  }
-
-  /**
-   * Builds multiple vision pose estimators from a list of camera constants.
-   *
-   * @return An array of estimators.
-   */
-  public static List<VisionPoseEstimator> buildFromCameras(
-      List<VisionPoseEstimatorConstants> allConstants) {
-    List<VisionPoseEstimator> estimators = new ArrayList<VisionPoseEstimator>();
-
-    allConstants.forEach(
-        camConstants -> {
-          estimators.add(buildFromCamera(camConstants));
-        });
-
-    return estimators;
-  }
-
-  /**
-   * Builds an empty array of pose estimators. Use this if there are no cameras on the robot.
-   *
-   * @return An empty array of pose estimators.
-   */
-  public static List<VisionPoseEstimator> noCameras() {
-    return new ArrayList<VisionPoseEstimator>();
   }
 
   /** Creates a new VisionPoseEstimator (all params are members that are javadocced already). */
@@ -124,27 +126,44 @@ public class VisionPoseEstimator implements AutoCloseable {
 
     _camera = new PhotonCamera(camName);
 
-    _poseEstimator = new PhotonPoseEstimator(
-      FieldConstants.fieldLayout,
-       PoseStrategy.MULTI_TAG_PNP_ON_COPROCESSOR,
-        robotToCam
-        );
+    _poseEstimator =
+        new PhotonPoseEstimator(
+            FieldConstants.fieldLayout, PoseStrategy.MULTI_TAG_PNP_ON_COPROCESSOR, robotToCam);
 
+    // this is actually "closest-to-gyro" in the robot code
     _poseEstimator.setMultiTagFallbackStrategy(PoseStrategy.LOWEST_AMBIGUITY);
+
+    _logPath = "Swerve/" + camName + "/";
   }
 
-  public Optional<VisionPoseEstimate> getEstimatedPose(double latestVisionTimestamp, Function<Double, Rotation2d> hyroHeadingAtTime){
-      _latestEstimate = VisionPoseEstimate.noDetectedTags();
+  // appends all the new estimates to the log file
+  private void logNewEstimates() {
+    _newEstimates.forEach(
+        e -> {
+          DogLog.log(_logPath + "Pose", e.pose);
+          DogLog.log(_logPath + "Timestamp", e.timestamp);
+          DogLog.log(_logPath + "Ambiguity", e.ambiguity);
+          DogLog.log(_logPath + "Detected Tags", e.detectedTags);
+          DogLog.log(_logPath + "Average Tag Distance", e.avgTagDistance);
+          DogLog.log(_logPath + "Std Devs", e.stdDevs);
+          DogLog.log(_logPath + "Is Valid", e.isValid);
+        });
+  }
 
-      Optional<EstimatedRobotPose> rawEstimate = _poseEstimator.update(_camera.getLatestResult());
-      if(rawEstimate.isEmpty()) return Optional.empty();
+  /**
+   * Returns an array of the new estimates since the last {@link #update} call. This should be used
+   * by the wpilib pose estimator.
+   */
+  public List<VisionPoseEstimate> getNewEstimates() {
+    return _newEstimates;
+  }
 
-      // filter the raw restimate to check if it is valid
+  /** Reads from the camera and generates an array of new latest {@link VisionPoseEstimate}(s). */
+  public void update() {
+    // TODO
 
-      // calculate std devs
-
-      return Optional.of(_latestEstimate);
-  } 
+    logNewEstimates();
+  }
 
   @Override
   public void close() throws Exception {}
