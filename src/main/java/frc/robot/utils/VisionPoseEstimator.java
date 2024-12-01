@@ -12,11 +12,7 @@ import java.util.List;
 
 /** Handles pose estimation coming from a single PhotonVision camera. */
 @Logged(strategy = Strategy.OPT_IN)
-public class VisionPoseEstimator {
-  // the latest vision estimate from the pose estimator
-  @Logged(name = "Latest Estimate")
-  private VisionPoseEstimate _latestEstimate = VisionPoseEstimate.noDetectedTags();
-
+public class VisionPoseEstimator implements AutoCloseable {
   /** The camera's NT name. */
   @Logged(name = "Camera Name")
   public final String camName;
@@ -44,6 +40,10 @@ public class VisionPoseEstimator {
    */
   @Logged(name = "Ignore Theta Estimate")
   public final boolean ignoreThetaEstimate = true;
+
+  // the latest vision estimate from the pose estimator
+  @Logged(name = "Latest Estimate")
+  private VisionPoseEstimate _latestEstimate = VisionPoseEstimate.noDetectedTags();
 
   /** Constants for a single vision pose estimator camera. */
   public record VisionPoseEstimatorConstants(
@@ -105,4 +105,7 @@ public class VisionPoseEstimator {
     this.ambiguityThreshold = ambiguityThreshold;
     this.cameraStdDevsFactor = cameraStdDevsFactor;
   }
+
+  @Override
+  public void close() throws Exception {}
 }
