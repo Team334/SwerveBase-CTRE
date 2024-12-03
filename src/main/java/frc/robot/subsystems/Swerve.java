@@ -126,6 +126,9 @@ public class Swerve extends SwerveDrivetrain implements Subsystem, SelfChecked {
   @Logged(name = "Is Open Loop")
   private boolean _isOpenLoop = true;
 
+  @Logged(name = "Ignore Vision Estimates")
+  private boolean _ignoreVisionEstimates = false;
+
   @Logged(name = VisionConstants.leftArducamName)
   private final VisionPoseEstimator _leftArducam =
       VisionPoseEstimator.buildFromConstants(VisionConstants.leftArducam);
@@ -370,6 +373,19 @@ public class Swerve extends SwerveDrivetrain implements Subsystem, SelfChecked {
     return getState().Speeds;
   }
 
+  // updates pose estimator with vision
+  private void updateVisionPoseEstimates() {
+    for (VisionPoseEstimator cam : _cameras) {
+      cam.update();
+
+      if (_ignoreVisionEstimates) return;
+
+      // var estimates = cam.getNewEstimates();
+
+      // TODO: process vision estimates
+    }
+  }
+
   @Override
   public void periodic() {
     // advanced subsystem task
@@ -381,7 +397,7 @@ public class Swerve extends SwerveDrivetrain implements Subsystem, SelfChecked {
 
     DogLog.log(getName() + "/Current Command", currentCommandName);
 
-    _cameras.forEach(cam -> cam.update());
+    updateVisionPoseEstimates();
   }
 
   private Command selfCheckModule(String name, SwerveModule module) {

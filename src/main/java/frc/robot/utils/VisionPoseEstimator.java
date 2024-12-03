@@ -8,10 +8,13 @@ import dev.doglog.DogLog;
 import edu.wpi.first.epilogue.Logged;
 import edu.wpi.first.epilogue.Logged.Strategy;
 import edu.wpi.first.math.geometry.Pose3d;
+import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Transform3d;
 import frc.robot.Constants.FieldConstants;
+import frc.robot.Constants.VisionConstants;
 import java.util.ArrayList;
 import java.util.List;
+import org.photonvision.EstimatedRobotPose;
 import org.photonvision.PhotonCamera;
 import org.photonvision.PhotonPoseEstimator;
 import org.photonvision.PhotonPoseEstimator.PoseStrategy;
@@ -45,7 +48,7 @@ public class VisionPoseEstimator implements AutoCloseable {
    * theta std devs will be super high).
    */
   @Logged(name = "Ignore Theta Estimate")
-  public final boolean ignoreThetaEstimate = true;
+  public boolean ignoreThetaEstimate = true;
 
   private final PhotonCamera _camera;
   private final PhotonPoseEstimator _poseEstimator;
@@ -93,17 +96,7 @@ public class VisionPoseEstimator implements AutoCloseable {
       double[] stdDevs,
 
       /** Whether this estimate passed the filter or not. */
-      boolean isValid) {
-
-    /**
-     * Returns a vision pose estimate that represents an estimate with no detected tags (or camera
-     * was disconnected).
-     */
-    public static final VisionPoseEstimate noDetectedTags() {
-      return new VisionPoseEstimate(
-          new Pose3d(), -1, -1, new int[0], -1, new double[] {-1, -1, -1}, false);
-    }
-  }
+      boolean isValid) {}
 
   /** Builds a new vision pose estimator from a single camera constants. */
   public static VisionPoseEstimator buildFromConstants(VisionPoseEstimatorConstants camConstants) {
@@ -159,13 +152,113 @@ public class VisionPoseEstimator implements AutoCloseable {
     return _newEstimates;
   }
 
+  /**
+   * Processes a given {@link EstimatedRobotPose}, converting it into a filtered {@link
+   * VisionPoseEstimate} with calculated measurement standard deviations.
+   *
+   * @param estimate The photon vision estimate.
+   * @param gyroHeading The gyro heading at the given estimate timestamp (necessary for
+   *     disambiguation).
+   * @return A new vision pose estimate.
+   */
+  public VisionPoseEstimate processEstimate( // public for unit tests
+      EstimatedRobotPose estimate, Rotation2d gyroHeading) {
+    // estimate properties
+    Pose3d estimatedPose = estimate.estimatedPose;
+    double timestamp = estimate.timestampSeconds;
+    double ambiguity = -1;
+    int tagAmount = estimate.targetsUsed.size();
+    int[] detectedTags = new int[tagAmount];
+    double avgTagDistance = 0;
+    double[] stdDevs = new double[3];
+    boolean isValid = false;
+
+    // ---- DISAMBIGUATE (if single-tag) ----
+    // disambiguate poses using gyro measurement (only necessary for a single tag)
+    if (tagAmount == 1) {
+      var target = estimate.targetsUsed.get(0);
+      int tagId = target.getFiducialId();
+      Pose3d tagPose = FieldConstants.fieldLayout.getTagPose(tagId).get();
+
+      ambiguity = target.getPoseAmbiguity();
+
+      Pose3d betterReprojPose = tagPose.transformBy(target.getBestCameraToTarget().inverse());
+      Pose3d worseReprojPose = tagPose.transformBy(target.getAlternateCameraToTarget().inverse());
+
+      betterReprojPose = betterReprojPose.transformBy(robotToCam.inverse());
+      worseReprojPose = worseReprojPose.transformBy(robotToCam.inverse());
+
+      // check which of the poses is closer to the correct gyro heading
+      if (Math.abs(betterReprojPose.toPose2d().getRotation().minus(gyroHeading).getDegrees())
+          < Math.abs(worseReprojPose.toPose2d().getRotation().minus(gyroHeading).getDegrees())) {
+        estimatedPose = betterReprojPose;
+      } else {
+        estimatedPose = worseReprojPose;
+      }
+    }
+
+    // ---- FILTER ----
+    // get tag distance
+    for (int i = 0; i < tagAmount; i++) {
+      int tagId = estimate.targetsUsed.get(i).getFiducialId();
+      Pose3d tagPose = FieldConstants.fieldLayout.getTagPose(tagId).get();
+      detectedTags[i] = tagId;
+      avgTagDistance += tagPose.getTranslation().getDistance(estimatedPose.getTranslation());
+    }
+
+    avgTagDistance /= tagAmount;
+
+    // run all filtering
+    boolean badAmbiguity = ambiguity >= ambiguityThreshold;
+    boolean outOfBounds =
+        (estimatedPose.getX() <= -VisionConstants.xBoundMargin
+            || estimatedPose.getX()
+                >= FieldConstants.fieldLayout.getFieldLength() + VisionConstants.xBoundMargin
+            || estimatedPose.getY() <= -VisionConstants.yBoundMargin
+            || estimatedPose.getY()
+                >= FieldConstants.fieldLayout.getFieldWidth() + VisionConstants.yBoundMargin
+            || estimatedPose.getZ() >= VisionConstants.zBoundMargin
+            || estimatedPose.getZ() <= -VisionConstants.zBoundMargin);
+
+    isValid = !(badAmbiguity || outOfBounds);
+
+    // ---- STD DEVS CALCULATION ----
+    if (isValid) {
+      double[] baseStdDevs =
+          detectedTags.length == 1
+              ? VisionConstants.singleTagBaseStdDevs
+              : VisionConstants.multiTagBaseStdDevs;
+
+      double xStdDevs = baseStdDevs[0] * Math.pow(avgTagDistance, 2) * cameraStdDevsFactor;
+      double yStdDevs = baseStdDevs[1] * Math.pow(avgTagDistance, 2) * cameraStdDevsFactor;
+      double thetaStdDevs = baseStdDevs[2] * Math.pow(avgTagDistance, 2) * cameraStdDevsFactor;
+
+      if (ignoreThetaEstimate) thetaStdDevs = 999999999;
+
+      stdDevs[0] = xStdDevs;
+      stdDevs[1] = yStdDevs;
+      stdDevs[2] = thetaStdDevs;
+    }
+
+    return new VisionPoseEstimate(
+        estimatedPose, timestamp, ambiguity, detectedTags, avgTagDistance, stdDevs, isValid);
+  }
+
   /** Reads from the camera and generates an array of new latest {@link VisionPoseEstimate}(s). */
   public void update() {
-    // TODO
+    for (var estimate : _camera.getAllUnreadResults()) {
+      var est = _poseEstimator.update(estimate);
+
+      if (est.isPresent()) {
+        _newEstimates.add(processEstimate(est.get(), Rotation2d.kZero)); // TODO: use actual gyro
+      }
+    }
 
     logNewEstimates();
   }
 
   @Override
-  public void close() throws Exception {}
+  public void close() throws Exception {
+    _camera.close();
+  }
 }
