@@ -18,7 +18,9 @@ import com.ctre.phoenix6.swerve.SwerveRequest.*;
 import dev.doglog.DogLog;
 import edu.wpi.first.epilogue.Logged;
 import edu.wpi.first.epilogue.Logged.Strategy;
+import edu.wpi.first.math.VecBuilder;
 import edu.wpi.first.math.geometry.Pose2d;
+import edu.wpi.first.math.geometry.Pose3d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.kinematics.SwerveDriveKinematics;
@@ -41,6 +43,8 @@ import frc.robot.Constants.SwerveConstants;
 import frc.robot.Constants.VisionConstants;
 import frc.robot.utils.SysId;
 import frc.robot.utils.VisionPoseEstimator;
+import frc.robot.utils.VisionPoseEstimator.VisionPoseEstimate;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -135,6 +139,9 @@ public class Swerve extends SwerveDrivetrain implements Subsystem, SelfChecked {
 
   // for easy iteration with multiple cameras
   private final List<VisionPoseEstimator> _cameras = List.of(_leftArducam);
+
+  private final List<VisionPoseEstimate> _acceptedEstimates = new ArrayList<>();
+  private final List<VisionPoseEstimate> _rejectedEstimates = new ArrayList<>();
 
   /**
    * Creates a new CommandSwerveDrivetrain.
@@ -375,20 +382,26 @@ public class Swerve extends SwerveDrivetrain implements Subsystem, SelfChecked {
 
   // updates pose estimator with vision
   private void updateVisionPoseEstimates() {
+    _acceptedEstimates.clear();
+    _rejectedEstimates.clear();
+
     for (VisionPoseEstimator cam : _cameras) {
       cam.update();
 
-      if (_ignoreVisionEstimates) return;
+      var estimates = cam.getNewEstimates();
 
-      // var estimates = cam.getNewEstimates();
-
-      // TODO: process vision estimates
+      // process estimates
+      estimates.forEach(
+          (e) -> {
+            if (e.isValid()) _acceptedEstimates.add(e);
+            else _rejectedEstimates.add(e);
+          });
     }
   }
 
   @Override
   public void periodic() {
-    // advanced subsystem task
+    // ---- advanced subsystem periodic ----
     String currentCommandName = "None";
 
     if (getCurrentCommand() != null) {
@@ -397,7 +410,28 @@ public class Swerve extends SwerveDrivetrain implements Subsystem, SelfChecked {
 
     DogLog.log(getName() + "/Current Command", currentCommandName);
 
+    // ---- this subsystem's periodic ----
     updateVisionPoseEstimates();
+
+    DogLog.log(
+        "Swerve/Accepted Estimates",
+        _acceptedEstimates.stream().map(VisionPoseEstimate::pose).toArray(Pose3d[]::new));
+    DogLog.log(
+        "Swerve/Rejected Estimates",
+        _rejectedEstimates.stream().map(VisionPoseEstimate::pose).toArray(Pose3d[]::new));
+
+    if (!_ignoreVisionEstimates) {
+      _acceptedEstimates.sort(VisionPoseEstimate.comparator);
+
+      _acceptedEstimates.forEach(
+          (e) -> {
+            var stdDevs = e.stdDevs();
+            addVisionMeasurement(
+                e.pose().toPose2d(),
+                e.timestamp(),
+                VecBuilder.fill(stdDevs[0], stdDevs[1], stdDevs[2]));
+          });
+    }
   }
 
   private Command selfCheckModule(String name, SwerveModule module) {

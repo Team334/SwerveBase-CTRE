@@ -13,6 +13,7 @@ import edu.wpi.first.math.geometry.Transform3d;
 import frc.robot.Constants.FieldConstants;
 import frc.robot.Constants.VisionConstants;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import org.photonvision.EstimatedRobotPose;
 import org.photonvision.PhotonCamera;
@@ -56,7 +57,7 @@ public class VisionPoseEstimator implements AutoCloseable {
   private final String _logPath;
 
   // new estimates from last update call
-  private List<VisionPoseEstimate> _newEstimates = new ArrayList<VisionPoseEstimate>();
+  private List<VisionPoseEstimate> _newEstimates = new ArrayList<>();
 
   /** Constants for a single vision pose estimator camera. */
   public record VisionPoseEstimatorConstants(
@@ -96,7 +97,35 @@ public class VisionPoseEstimator implements AutoCloseable {
       double[] stdDevs,
 
       /** Whether this estimate passed the filter or not. */
-      boolean isValid) {}
+      boolean isValid) {
+    /**
+     * Used for sorting a list of vision pose estimates, first the timestamps are sorted (from
+     * smallest to highest), then the standard deviations at the same timestamp are sorted if
+     * necessary.
+     */
+    public static final Comparator<VisionPoseEstimate> comparator =
+        Comparator.comparing(
+                VisionPoseEstimate::timestamp,
+                (t1, t2) -> {
+                  if (t1 > t2) return 1;
+                  if (t1 < t2) return -1;
+                  return 0;
+                })
+            .thenComparing(
+                // this only happens when measurements land on the same timestamp, they need to be
+                // sorted by decreasing std devs
+                // this is further explained on the 3rd bullet point here:
+                // https://www.chiefdelphi.com/t/frc-6328-mechanical-advantage-2023-build-thread/420691/36
+                VisionPoseEstimate::stdDevs,
+                (s1, s2) -> {
+                  return -Double.compare(
+                      // compare total s1 std devs to total s2 std devs
+                      // if s1 (total) is greater than s2 (total), that actually means that we want
+                      // s2 to come
+                      // after s1 in the sorted array, which is why the negative symbol is needed
+                      s1[0] + s1[1] + s1[2], s2[0] + s2[1] + s2[2]);
+                });
+  }
 
   /** Builds a new vision pose estimator from a single camera constants. */
   public static VisionPoseEstimator buildFromConstants(VisionPoseEstimatorConstants camConstants) {
@@ -130,26 +159,23 @@ public class VisionPoseEstimator implements AutoCloseable {
     _logPath = "Swerve/" + camName + "/Estimate/";
   }
 
-  // appends all the new estimates to the log file
-  private void logNewEstimates() {
-    _newEstimates.forEach(
-        e -> {
-          DogLog.log(_logPath + "Pose", e.pose);
-          DogLog.log(_logPath + "Timestamp", e.timestamp);
-          DogLog.log(_logPath + "Ambiguity", e.ambiguity);
-          DogLog.log(_logPath + "Detected Tags", e.detectedTags);
-          DogLog.log(_logPath + "Average Tag Distance", e.avgTagDistance);
-          DogLog.log(_logPath + "Std Devs", e.stdDevs);
-          DogLog.log(_logPath + "Is Valid", e.isValid);
-        });
-  }
-
   /**
    * Returns an array of the new estimates since the last {@link #update} call. This should be used
    * by the wpilib pose estimator.
    */
   public List<VisionPoseEstimate> getNewEstimates() {
     return _newEstimates;
+  }
+
+  // appends a new estimate to the log file
+  private void logNewEstimate(VisionPoseEstimate estimate) {
+    DogLog.log(_logPath + "Pose", estimate.pose);
+    DogLog.log(_logPath + "Timestamp", estimate.timestamp);
+    DogLog.log(_logPath + "Ambiguity", estimate.ambiguity);
+    DogLog.log(_logPath + "Detected Tags", estimate.detectedTags);
+    DogLog.log(_logPath + "Average Tag Distance", estimate.avgTagDistance);
+    DogLog.log(_logPath + "Std Devs", estimate.stdDevs);
+    DogLog.log(_logPath + "Is Valid", estimate.isValid);
   }
 
   /**
@@ -161,8 +187,7 @@ public class VisionPoseEstimator implements AutoCloseable {
    *     disambiguation).
    * @return A new vision pose estimate.
    */
-  public VisionPoseEstimate processEstimate( // public for unit tests
-      EstimatedRobotPose estimate, Rotation2d gyroHeading) {
+  private VisionPoseEstimate processEstimate(EstimatedRobotPose estimate, Rotation2d gyroHeading) {
     // estimate properties
     Pose3d estimatedPose = estimate.estimatedPose;
     double timestamp = estimate.timestampSeconds;
@@ -250,11 +275,12 @@ public class VisionPoseEstimator implements AutoCloseable {
       var est = _poseEstimator.update(estimate);
 
       if (est.isPresent()) {
-        _newEstimates.add(processEstimate(est.get(), Rotation2d.kZero)); // TODO: use actual gyro
+        var newEstimate = processEstimate(est.get(), Rotation2d.kZero); // TODO: use the actual gyro
+        _newEstimates.add(newEstimate);
+
+        logNewEstimate(newEstimate);
       }
     }
-
-    logNewEstimates();
   }
 
   @Override
