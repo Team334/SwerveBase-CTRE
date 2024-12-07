@@ -38,6 +38,7 @@ import frc.lib.FaultsTable.FaultType;
 import frc.lib.InputStream;
 import frc.lib.SelfChecked;
 import frc.robot.Constants;
+import frc.robot.Constants.FieldConstants;
 import frc.robot.Constants.SwerveConstants;
 import frc.robot.Constants.VisionConstants;
 import frc.robot.Robot;
@@ -49,6 +50,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.function.BiConsumer;
+import org.photonvision.simulation.VisionSystemSim;
 
 @Logged(strategy = Strategy.OPT_IN)
 public class Swerve extends SwerveDrivetrain implements Subsystem, SelfChecked {
@@ -143,6 +145,10 @@ public class Swerve extends SwerveDrivetrain implements Subsystem, SelfChecked {
   private final List<VisionPoseEstimate> _acceptedEstimates = new ArrayList<>();
   private final List<VisionPoseEstimate> _rejectedEstimates = new ArrayList<>();
 
+  private final Set<Pose3d> _detectedTags = new HashSet<>();
+
+  private final VisionSystemSim _visionSystemSim;
+
   /**
    * Creates a new CommandSwerveDrivetrain.
    *
@@ -189,7 +195,15 @@ public class Swerve extends SwerveDrivetrain implements Subsystem, SelfChecked {
 
     registerFallibles();
 
-    if (Robot.isSimulation()) startSimThread();
+    if (Robot.isSimulation()) {
+      startSimThread();
+
+      _visionSystemSim = new VisionSystemSim("Vision System Sim");
+
+      _cameras.forEach(cam -> _visionSystemSim.addCamera(cam.getCameraSim(), cam.robotToCam));
+    } else {
+      _visionSystemSim = null;
+    }
   }
 
   // COPIED FROM ADVANCED SUBSYSTEM
@@ -390,6 +404,8 @@ public class Swerve extends SwerveDrivetrain implements Subsystem, SelfChecked {
     _acceptedEstimates.clear();
     _rejectedEstimates.clear();
 
+    _detectedTags.clear();
+
     for (VisionPoseEstimator cam : _cameras) {
       cam.update(this::getHeadingAtTime);
 
@@ -397,9 +413,15 @@ public class Swerve extends SwerveDrivetrain implements Subsystem, SelfChecked {
 
       // process estimates
       estimates.forEach(
-          (e) -> {
-            if (e.isValid()) _acceptedEstimates.add(e);
-            else _rejectedEstimates.add(e);
+          (estimate) -> {
+            // add all detected tag poses
+            for (int id : estimate.detectedTags()) {
+              FieldConstants.fieldLayout.getTagPose(id).ifPresent(pose -> _detectedTags.add(pose));
+            }
+
+            // add robot poses to their corresponding arrays
+            if (estimate.isValid()) _acceptedEstimates.add(estimate);
+            else _rejectedEstimates.add(estimate);
           });
     }
   }
@@ -425,6 +447,8 @@ public class Swerve extends SwerveDrivetrain implements Subsystem, SelfChecked {
         "Swerve/Rejected Estimates",
         _rejectedEstimates.stream().map(VisionPoseEstimate::pose).toArray(Pose3d[]::new));
 
+    DogLog.log("Swerve/Detected Tags", _detectedTags.toArray(Pose3d[]::new));
+
     if (!_ignoreVisionEstimates) {
       _acceptedEstimates.sort(VisionPoseEstimate.comparator);
 
@@ -437,6 +461,11 @@ public class Swerve extends SwerveDrivetrain implements Subsystem, SelfChecked {
                 VecBuilder.fill(stdDevs[0], stdDevs[1], stdDevs[2]));
           });
     }
+  }
+
+  @Override
+  public void simulationPeriodic() {
+    _visionSystemSim.update(Pose2d.kZero); // TODO
   }
 
   private Command selfCheckModule(String name, SwerveModule module) {

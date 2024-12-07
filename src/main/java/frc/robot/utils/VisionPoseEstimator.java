@@ -10,6 +10,7 @@ import edu.wpi.first.epilogue.Logged.Strategy;
 import edu.wpi.first.math.geometry.Pose3d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Transform3d;
+import edu.wpi.first.networktables.NetworkTableInstance;
 import frc.robot.Constants.FieldConstants;
 import frc.robot.Constants.VisionConstants;
 import frc.robot.Robot;
@@ -135,11 +136,17 @@ public class VisionPoseEstimator implements AutoCloseable {
 
   /** Builds a new vision pose estimator from a single camera constants. */
   public static VisionPoseEstimator buildFromConstants(VisionPoseEstimatorConstants camConstants) {
+    return buildFromConstants(camConstants, NetworkTableInstance.getDefault());
+  }
+
+  public static VisionPoseEstimator buildFromConstants(
+      VisionPoseEstimatorConstants camConstants, NetworkTableInstance ntInst) {
     return new VisionPoseEstimator(
         camConstants.camName,
         camConstants.robotToCam,
         camConstants.ambiguityThreshold,
-        camConstants.cameraStdDevsFactor);
+        camConstants.cameraStdDevsFactor,
+        ntInst);
   }
 
   /** Creates a new VisionPoseEstimator (all params are members that are javadocced already). */
@@ -147,13 +154,14 @@ public class VisionPoseEstimator implements AutoCloseable {
       String camName,
       Transform3d robotToCam,
       double ambiguityThreshold,
-      double cameraStdDevsFactor) {
+      double cameraStdDevsFactor,
+      NetworkTableInstance ntInst) {
     this.camName = camName;
     this.robotToCam = robotToCam;
     this.ambiguityThreshold = ambiguityThreshold;
     this.cameraStdDevsFactor = cameraStdDevsFactor;
 
-    _camera = new PhotonCamera(camName);
+    _camera = new PhotonCamera(ntInst, camName);
 
     _poseEstimator =
         new PhotonPoseEstimator(
