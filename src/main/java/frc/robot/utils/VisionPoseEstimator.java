@@ -12,13 +12,17 @@ import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Transform3d;
 import frc.robot.Constants.FieldConstants;
 import frc.robot.Constants.VisionConstants;
+import frc.robot.Robot;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.function.Function;
 import org.photonvision.EstimatedRobotPose;
 import org.photonvision.PhotonCamera;
 import org.photonvision.PhotonPoseEstimator;
 import org.photonvision.PhotonPoseEstimator.PoseStrategy;
+import org.photonvision.simulation.PhotonCameraSim;
+import org.photonvision.simulation.SimCameraProperties;
 
 /** Handles pose estimation coming from a single PhotonVision camera. */
 @Logged(strategy = Strategy.OPT_IN)
@@ -52,6 +56,8 @@ public class VisionPoseEstimator implements AutoCloseable {
   public boolean ignoreThetaEstimate = true;
 
   private final PhotonCamera _camera;
+  private final PhotonCameraSim _cameraSim;
+
   private final PhotonPoseEstimator _poseEstimator;
 
   private final String _logPath;
@@ -157,6 +163,14 @@ public class VisionPoseEstimator implements AutoCloseable {
     _poseEstimator.setMultiTagFallbackStrategy(PoseStrategy.LOWEST_AMBIGUITY);
 
     _logPath = "Swerve/" + camName + "/Estimate/";
+
+    if (Robot.isSimulation()) {
+      var cameraProps = new SimCameraProperties();
+
+      _cameraSim = new PhotonCameraSim(_camera, cameraProps);
+    } else {
+      _cameraSim = null;
+    }
   }
 
   /**
@@ -270,12 +284,13 @@ public class VisionPoseEstimator implements AutoCloseable {
   }
 
   /** Reads from the camera and generates an array of new latest {@link VisionPoseEstimate}(s). */
-  public void update() {
+  public void update(Function<Double, Rotation2d> headingAtTime) {
     for (var estimate : _camera.getAllUnreadResults()) {
       var est = _poseEstimator.update(estimate);
 
       if (est.isPresent()) {
-        var newEstimate = processEstimate(est.get(), Rotation2d.kZero); // TODO: use the actual gyro
+        var newEstimate =
+            processEstimate(est.get(), headingAtTime.apply(est.get().timestampSeconds));
         _newEstimates.add(newEstimate);
 
         logNewEstimate(newEstimate);
@@ -283,8 +298,17 @@ public class VisionPoseEstimator implements AutoCloseable {
     }
   }
 
+  /**
+   * Returns the camera simulation to add into the vision system simulation. This is null in real
+   * life testing.
+   */
+  public PhotonCameraSim getCameraSim() {
+    return _cameraSim;
+  }
+
   @Override
   public void close() throws Exception {
     _camera.close();
+    _cameraSim.close();
   }
 }

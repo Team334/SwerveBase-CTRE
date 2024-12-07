@@ -38,15 +38,15 @@ public class UnitTestingUtil {
   }
 
   /**
-   * Resets CommandScheduler and closes all subsystems. Please call in an @AfterEach method!
+   * Resets CommandScheduler and closes all closeables. Please call in an @AfterEach method!
    *
-   * @param subsystems All subsystems that need to be closed.
+   * @param closeables All closeables that need to be closed.
    */
-  public static void reset(AutoCloseable... subsystems) throws Exception {
+  public static void reset(AutoCloseable... closeables) throws Exception {
     reset();
 
-    for (AutoCloseable subsystem : subsystems) {
-      subsystem.close();
+    for (AutoCloseable closeable : closeables) {
+      closeable.close();
     }
   }
 

@@ -15,7 +15,6 @@ import edu.wpi.first.epilogue.Logged;
 import edu.wpi.first.epilogue.Logged.Strategy;
 import edu.wpi.first.wpilibj.DataLogManager;
 import edu.wpi.first.wpilibj.DriverStation;
-import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
@@ -56,7 +55,7 @@ public class Robot extends TimedRobot {
     Epilogue.bind(this);
     SignalLogger.start();
 
-    DriverStation.silenceJoystickConnectionWarning(RobotBase.isSimulation());
+    DriverStation.silenceJoystickConnectionWarning(isSimulation());
 
     configureBindings();
 
