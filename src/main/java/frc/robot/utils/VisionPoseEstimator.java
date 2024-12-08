@@ -5,6 +5,7 @@
 package frc.robot.utils;
 
 import dev.doglog.DogLog;
+import edu.wpi.first.apriltag.AprilTagFieldLayout;
 import edu.wpi.first.epilogue.Logged;
 import edu.wpi.first.epilogue.Logged.Strategy;
 import edu.wpi.first.math.geometry.Pose3d;
@@ -134,19 +135,30 @@ public class VisionPoseEstimator implements AutoCloseable {
                 });
   }
 
-  /** Builds a new vision pose estimator from a single camera constants. */
+  /**
+   * Builds a new vision pose estimator from a single camera constants. NT instance is set to
+   * default, and the field layout is set to whatever is in the constants file.
+   */
   public static VisionPoseEstimator buildFromConstants(VisionPoseEstimatorConstants camConstants) {
-    return buildFromConstants(camConstants, NetworkTableInstance.getDefault());
+    return buildFromConstants(
+        camConstants, NetworkTableInstance.getDefault(), FieldConstants.fieldLayout);
   }
 
+  /**
+   * Builds a new vision pose estimator from a single camera constants. NT instance must be
+   * configured, and the field layout must be configured (use this for unit tests).
+   */
   public static VisionPoseEstimator buildFromConstants(
-      VisionPoseEstimatorConstants camConstants, NetworkTableInstance ntInst) {
+      VisionPoseEstimatorConstants camConstants,
+      NetworkTableInstance ntInst,
+      AprilTagFieldLayout fieldLayout) {
     return new VisionPoseEstimator(
         camConstants.camName,
         camConstants.robotToCam,
         camConstants.ambiguityThreshold,
         camConstants.cameraStdDevsFactor,
-        ntInst);
+        ntInst,
+        fieldLayout);
   }
 
   /** Creates a new VisionPoseEstimator (all params are members that are javadocced already). */
@@ -155,7 +167,8 @@ public class VisionPoseEstimator implements AutoCloseable {
       Transform3d robotToCam,
       double ambiguityThreshold,
       double cameraStdDevsFactor,
-      NetworkTableInstance ntInst) {
+      NetworkTableInstance ntInst,
+      AprilTagFieldLayout fieldLayout) {
     this.camName = camName;
     this.robotToCam = robotToCam;
     this.ambiguityThreshold = ambiguityThreshold;
@@ -164,8 +177,7 @@ public class VisionPoseEstimator implements AutoCloseable {
     _camera = new PhotonCamera(ntInst, camName);
 
     _poseEstimator =
-        new PhotonPoseEstimator(
-            FieldConstants.fieldLayout, PoseStrategy.MULTI_TAG_PNP_ON_COPROCESSOR, robotToCam);
+        new PhotonPoseEstimator(fieldLayout, PoseStrategy.MULTI_TAG_PNP_ON_COPROCESSOR, robotToCam);
 
     // this is actually "closest-to-gyro" in the robot code
     _poseEstimator.setMultiTagFallbackStrategy(PoseStrategy.LOWEST_AMBIGUITY);
@@ -183,7 +195,7 @@ public class VisionPoseEstimator implements AutoCloseable {
 
   /**
    * Returns an array of the new estimates since the last {@link #update} call. This should be used
-   * by the wpilib pose estimator.
+   * for the wpilib pose estimator.
    */
   public List<VisionPoseEstimate> getNewEstimates() {
     return _newEstimates;
@@ -225,7 +237,7 @@ public class VisionPoseEstimator implements AutoCloseable {
     if (tagAmount == 1) {
       var target = estimate.targetsUsed.get(0);
       int tagId = target.getFiducialId();
-      Pose3d tagPose = FieldConstants.fieldLayout.getTagPose(tagId).get();
+      Pose3d tagPose = _poseEstimator.getFieldTags().getTagPose(tagId).get();
 
       ambiguity = target.getPoseAmbiguity();
 
@@ -248,7 +260,7 @@ public class VisionPoseEstimator implements AutoCloseable {
     // get tag distance
     for (int i = 0; i < tagAmount; i++) {
       int tagId = estimate.targetsUsed.get(i).getFiducialId();
-      Pose3d tagPose = FieldConstants.fieldLayout.getTagPose(tagId).get();
+      Pose3d tagPose = _poseEstimator.getFieldTags().getTagPose(tagId).get();
       detectedTags[i] = tagId;
       avgTagDistance += tagPose.getTranslation().getDistance(estimatedPose.getTranslation());
     }
@@ -258,14 +270,14 @@ public class VisionPoseEstimator implements AutoCloseable {
     // run all filtering
     boolean badAmbiguity = ambiguity >= ambiguityThreshold;
     boolean outOfBounds =
-        (estimatedPose.getX() <= -VisionConstants.xBoundMargin
+        (estimatedPose.getX() < -VisionConstants.xBoundMargin
             || estimatedPose.getX()
-                >= FieldConstants.fieldLayout.getFieldLength() + VisionConstants.xBoundMargin
-            || estimatedPose.getY() <= -VisionConstants.yBoundMargin
+                > _poseEstimator.getFieldTags().getFieldLength() + VisionConstants.xBoundMargin
+            || estimatedPose.getY() < -VisionConstants.yBoundMargin
             || estimatedPose.getY()
-                >= FieldConstants.fieldLayout.getFieldWidth() + VisionConstants.yBoundMargin
-            || estimatedPose.getZ() >= VisionConstants.zBoundMargin
-            || estimatedPose.getZ() <= -VisionConstants.zBoundMargin);
+                > _poseEstimator.getFieldTags().getFieldWidth() + VisionConstants.yBoundMargin
+            || estimatedPose.getZ() < -VisionConstants.zBoundMargin
+            || estimatedPose.getZ() > VisionConstants.zBoundMargin);
 
     isValid = !(badAmbiguity || outOfBounds);
 
