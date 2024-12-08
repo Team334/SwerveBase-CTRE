@@ -53,7 +53,9 @@ public final class Constants {
             leftArducamName,
             new Transform3d(new Translation3d(0, 0, 1), new Rotation3d()),
             0.2,
-            0.0001);
+            0.0001,
+            3,
+            7);
   }
 
   public static class SwerveConstants {

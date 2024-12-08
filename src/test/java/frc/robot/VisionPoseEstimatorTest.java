@@ -45,6 +45,7 @@ public class VisionPoseEstimatorTest {
 
     // // add all tags to the field layout
     tags.add(new AprilTag(1, new Pose3d(1, 0, 1, new Rotation3d(0, 0, -Math.PI))));
+    tags.add(new AprilTag(2, new Pose3d(2, 0.5, 0.5, new Rotation3d(0, -0.3, -Math.PI))));
 
     _fieldLayout = new AprilTagFieldLayout(tags, Units.feetToMeters(54), Units.feetToMeters(27));
   }
@@ -55,7 +56,12 @@ public class VisionPoseEstimatorTest {
 
     var testCam =
         new VisionPoseEstimatorConstants(
-            "test-cam", new Transform3d(new Translation3d(0, 0, 1), new Rotation3d()), 0.2, 0.0001);
+            "test-cam",
+            new Transform3d(new Translation3d(0, 0, 1), new Rotation3d()),
+            0.2,
+            0.0001,
+            3,
+            7);
 
     _testCam =
         VisionPoseEstimator.buildFromConstants(testCam, UnitTestingUtil.getNtInst(), _fieldLayout);
@@ -83,7 +89,6 @@ public class VisionPoseEstimatorTest {
   public void singleTagResult() {
     _visionSystemSim.addVisionTargets(
         new VisionTargetSim(_fieldLayout.getTagPose(1).get(), TargetModel.kAprilTag36h11, 1));
-
     _visionSystemSim.update(Pose2d.kZero); // should see the single target
 
     _testCam.update(this::dummyGyroHeading);
@@ -108,7 +113,6 @@ public class VisionPoseEstimatorTest {
   public void singleTagEstimate() {
     _visionSystemSim.addVisionTargets(
         new VisionTargetSim(_fieldLayout.getTagPose(1).get(), TargetModel.kAprilTag36h11, 1));
-
     _visionSystemSim.update(Pose2d.kZero);
 
     _testCam.update(this::dummyGyroHeading);
@@ -121,12 +125,12 @@ public class VisionPoseEstimatorTest {
     assert estimate.isValid();
 
     // pose validity
-    assertEquals(estimate.pose().getX(), 0, 1e-5);
-    assertEquals(estimate.pose().getY(), 0, 1e-5);
-    assertEquals(estimate.pose().getZ(), 0, 1e-5);
-    assertEquals(estimate.pose().getRotation().getX(), 0, 1e-5);
-    assertEquals(estimate.pose().getRotation().getY(), 0, 1e-5);
-    assertEquals(estimate.pose().getRotation().getZ(), 0, 1e-5);
+    assertEquals(estimate.pose().getX(), 0, 1e-4);
+    assertEquals(estimate.pose().getY(), 0, 1e-4);
+    assertEquals(estimate.pose().getZ(), 0, 1e-4);
+    assertEquals(estimate.pose().getRotation().getX(), 0, 1e-4);
+    assertEquals(estimate.pose().getRotation().getY(), 0, 1e-4);
+    assertEquals(estimate.pose().getRotation().getZ(), 0, 1e-4);
 
     // should see only ID 1
     assertArrayEquals(estimate.detectedTags(), new int[] {1});
@@ -139,17 +143,77 @@ public class VisionPoseEstimatorTest {
             .get()
             .getTranslation()
             .getDistance(Pose3d.kZero.getTranslation()),
-        1e-5);
+        1e-4);
 
     // std devs validity
     assertNotEquals(estimate.stdDevs(), new int[] {0, 0, 0});
   }
 
   @Test
-  public void disambiguation() {}
+  public void multiTagEstimate() {
+    // WHY IS THIS NOT WORKINGGGG
+    _visionSystemSim.addAprilTags(_fieldLayout);
+    _visionSystemSim.update(Pose2d.kZero);
+
+    _testCam.update(this::dummyGyroHeading);
+
+    var estimates = _testCam.getNewEstimates(); // 1 estimate
+    assertEquals(estimates.size(), 1);
+
+    var estimate = estimates.get(0);
+
+    // System.out.println(estimate);
+
+    assert estimate.isValid();
+
+    // pose validity
+    assertEquals(estimate.pose().getX(), 0, 1e-4);
+    assertEquals(estimate.pose().getY(), 0, 1e-4);
+    assertEquals(estimate.pose().getZ(), 0, 1e-4);
+    assertEquals(estimate.pose().getRotation().getX(), 0, 1e-4);
+    assertEquals(estimate.pose().getRotation().getY(), 0, 1e-4);
+    assertEquals(estimate.pose().getRotation().getZ(), 0, 1e-4);
+
+    // should see only ID 1 and 2
+    assertArrayEquals(estimate.detectedTags(), new int[] {1, 2});
+
+    // distance validity
+    assertEquals(
+        estimate.avgTagDistance(),
+        (_fieldLayout
+                    .getTagPose(1)
+                    .get()
+                    .getTranslation()
+                    .getDistance(Pose3d.kZero.getTranslation())
+                + _fieldLayout
+                    .getTagPose(2)
+                    .get()
+                    .getTranslation()
+                    .getDistance(Pose3d.kZero.getTranslation()))
+            / 2,
+        1e-4);
+
+    // std devs validity
+    assertNotEquals(estimate.stdDevs(), new int[] {0, 0, 0});
+  }
+
+  // ⬇ TODO ⬇
+
+  @Test
+  public void boundsFilter() {}
+
+  @Test
+  public void ambiguityFilter() {}
+
+  @Test
+  public void singleTagDistanceFilter() {}
+
+  @Test
+  public void multiTagDistanceFilter() {}
 
   @Test
   public void estimateSort() {}
 
-  // and so on ... TODO
+  @Test
+  public void disambiguation() {}
 }

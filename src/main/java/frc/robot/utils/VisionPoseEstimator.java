@@ -50,6 +50,14 @@ public class VisionPoseEstimator implements AutoCloseable {
   @Logged(name = "Robot To Camera Transform")
   public final Transform3d robotToCam;
 
+  /** Maximum allowed distance for single tag estimates. */
+  @Logged(name = "Single Tag Max Distance")
+  public final double singleTagMaxDistance;
+
+  /** Maximum allowed distance for multitag estimates. */
+  @Logged(name = "Multi-Tag Max Distance")
+  public final double multiTagMaxDistance;
+
   /**
    * Whether this estimator is ignoring the vision heading estimate (if this is true the vision
    * theta std devs will be super high).
@@ -79,7 +87,13 @@ public class VisionPoseEstimator implements AutoCloseable {
       double ambiguityThreshold,
 
       /** The camera's std devs factor. */
-      double cameraStdDevsFactor) {}
+      double cameraStdDevsFactor,
+
+      /** Maximum allowed distance for single tag estimates. */
+      double singleTagMaxDistance,
+
+      /** Maximum allowed distance for multitag estimates. */
+      double multiTagMaxDistance) {}
 
   /** Represents a single vision pose estimate. */
   public record VisionPoseEstimate(
@@ -155,6 +169,8 @@ public class VisionPoseEstimator implements AutoCloseable {
     return new VisionPoseEstimator(
         camConstants.camName,
         camConstants.robotToCam,
+        camConstants.singleTagMaxDistance,
+        camConstants.multiTagMaxDistance,
         camConstants.ambiguityThreshold,
         camConstants.cameraStdDevsFactor,
         ntInst,
@@ -165,6 +181,8 @@ public class VisionPoseEstimator implements AutoCloseable {
   public VisionPoseEstimator(
       String camName,
       Transform3d robotToCam,
+      double singleTagMaxDistance,
+      double multiTagMaxDistance,
       double ambiguityThreshold,
       double cameraStdDevsFactor,
       NetworkTableInstance ntInst,
@@ -173,6 +191,8 @@ public class VisionPoseEstimator implements AutoCloseable {
     this.robotToCam = robotToCam;
     this.ambiguityThreshold = ambiguityThreshold;
     this.cameraStdDevsFactor = cameraStdDevsFactor;
+    this.singleTagMaxDistance = singleTagMaxDistance;
+    this.multiTagMaxDistance = multiTagMaxDistance;
 
     _camera = new PhotonCamera(ntInst, camName);
 
@@ -279,12 +299,17 @@ public class VisionPoseEstimator implements AutoCloseable {
             || estimatedPose.getZ() < -VisionConstants.zBoundMargin
             || estimatedPose.getZ() > VisionConstants.zBoundMargin);
 
-    isValid = !(badAmbiguity || outOfBounds);
+    boolean tooFar =
+        tagAmount == 1
+            ? avgTagDistance > singleTagMaxDistance
+            : avgTagDistance > multiTagMaxDistance;
+
+    isValid = !(badAmbiguity || outOfBounds || tooFar);
 
     // ---- STD DEVS CALCULATION ----
     if (isValid) {
       double[] baseStdDevs =
-          detectedTags.length == 1
+          tagAmount == 1
               ? VisionConstants.singleTagBaseStdDevs
               : VisionConstants.multiTagBaseStdDevs;
 
@@ -305,8 +330,8 @@ public class VisionPoseEstimator implements AutoCloseable {
 
   /** Reads from the camera and generates an array of new latest {@link VisionPoseEstimate}(s). */
   public void update(Function<Double, Rotation2d> headingAtTime) {
-    for (var estimate : _camera.getAllUnreadResults()) {
-      var est = _poseEstimator.update(estimate);
+    for (var result : _camera.getAllUnreadResults()) {
+      var est = _poseEstimator.update(result);
 
       if (est.isPresent()) {
         var newEstimate =
