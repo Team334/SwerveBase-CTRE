@@ -330,7 +330,13 @@ public class VisionPoseEstimator implements AutoCloseable {
 
   /** Reads from the camera and generates an array of new latest {@link VisionPoseEstimate}(s). */
   public void update(Function<Double, Rotation2d> headingAtTime) {
-    for (var result : _camera.getAllUnreadResults()) {
+    _newEstimates.clear(); // reset new estimates
+
+    var results = _camera.getAllUnreadResults();
+
+    DogLog.log("Swerve/" + camName + "/Camera Result #", results.size()); // also to check if cam's connected
+
+    for (var result : results) {
       var est = _poseEstimator.update(result);
 
       if (est.isPresent()) {

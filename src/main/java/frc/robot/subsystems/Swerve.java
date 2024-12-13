@@ -199,6 +199,7 @@ public class Swerve extends SwerveDrivetrain implements Subsystem, SelfChecked {
       startSimThread();
 
       _visionSystemSim = new VisionSystemSim("Vision System Sim");
+      _visionSystemSim.addAprilTags(FieldConstants.fieldLayout);
 
       _cameras.forEach(cam -> _visionSystemSim.addCamera(cam.getCameraSim(), cam.robotToCam));
     } else {
@@ -465,7 +466,7 @@ public class Swerve extends SwerveDrivetrain implements Subsystem, SelfChecked {
 
   @Override
   public void simulationPeriodic() {
-    _visionSystemSim.update(Pose2d.kZero); // TODO
+    _visionSystemSim.update(getPose()); // TODO
   }
 
   private Command selfCheckModule(String name, SwerveModule module) {
