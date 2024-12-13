@@ -249,7 +249,7 @@ public class VisionPoseEstimator implements AutoCloseable {
     int tagAmount = estimate.targetsUsed.size();
     int[] detectedTags = new int[tagAmount];
     double avgTagDistance = 0;
-    double[] stdDevs = new double[3];
+    double[] stdDevs = new double[] {-1, -1, -1};
     boolean isValid = false;
 
     // ---- DISAMBIGUATE (if single-tag) ----

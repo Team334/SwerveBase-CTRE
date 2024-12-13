@@ -1,10 +1,7 @@
 package frc.robot;
 
-import static frc.lib.UnitTestingUtil.reset;
-import static frc.lib.UnitTestingUtil.setupTests;
-import static org.junit.jupiter.api.Assertions.assertArrayEquals;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static frc.lib.UnitTestingUtil.*;
+import static org.junit.jupiter.api.Assertions.*;
 
 import edu.wpi.first.apriltag.AprilTag;
 import edu.wpi.first.apriltag.AprilTagFieldLayout;
@@ -149,9 +146,13 @@ public class VisionPoseEstimatorTest {
     assertNotEquals(estimate.stdDevs(), new int[] {0, 0, 0});
   }
 
-  @Test
+  // multi-tag does not work due to this issue:
+  // https://github.com/PhotonVision/photonvision/issues/1630
+  // the field-relative corner coordinates are used in the multi-tag solvepnp:
+  // https://github.com/PhotonVision/photonvision/blob/e8efef476b3b4681c8899a8720774d6dbd5ccf56/photon-targeting/src/main/java/org/photonvision/estimation/OpenCVHelp.java#L573
+
+  // @Test
   public void multiTagEstimate() {
-    // WHY IS THIS NOT WORKINGGGG
     _visionSystemSim.addAprilTags(_fieldLayout);
     _visionSystemSim.update(Pose2d.kZero);
 
@@ -197,10 +198,49 @@ public class VisionPoseEstimatorTest {
     assertNotEquals(estimate.stdDevs(), new int[] {0, 0, 0});
   }
 
-  // ⬇ TODO ⬇
-
   @Test
-  public void boundsFilter() {}
+  public void boundsFilter() {
+    _visionSystemSim.addVisionTargets(
+        new VisionTargetSim(_fieldLayout.getTagPose(1).get(), TargetModel.kAprilTag36h11, 1));
+
+    // float the robot above the ground by 0.3 meters
+    _visionSystemSim.update(new Pose3d(0, 0, 0.3, Rotation3d.kZero));
+
+    _testCam.update(this::dummyGyroHeading);
+
+    var estimates = _testCam.getNewEstimates(); // 1 estimate
+    assertEquals(estimates.size(), 1);
+
+    var estimate = estimates.get(0);
+
+    assertFalse(estimate.isValid());
+
+    // pose validity
+    assertEquals(estimate.pose().getX(), 0, 1e-4);
+    assertEquals(estimate.pose().getY(), 0, 1e-4);
+    assertNotEquals(estimate.pose().getZ(), 0, 1e-4);
+    assertEquals(estimate.pose().getRotation().getX(), 0, 1e-4);
+    assertEquals(estimate.pose().getRotation().getY(), 0, 1e-4);
+    assertEquals(estimate.pose().getRotation().getZ(), 0, 1e-4);
+
+    // should see only ID 1
+    assertArrayEquals(estimate.detectedTags(), new int[] {1});
+
+    // distance validity
+    assertNotEquals(
+        estimate.avgTagDistance(),
+        _fieldLayout
+            .getTagPose(1)
+            .get()
+            .getTranslation()
+            .getDistance(Pose3d.kZero.getTranslation()),
+        1e-4);
+
+    // std devs validity
+    assertArrayEquals(estimate.stdDevs(), new double[] {-1, -1, -1});
+  }
+
+  // ⬇ TODO ⬇
 
   @Test
   public void ambiguityFilter() {}
