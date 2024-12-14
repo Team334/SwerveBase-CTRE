@@ -125,7 +125,7 @@ public class VisionPoseEstimator implements AutoCloseable {
      * smallest to highest), then the standard deviations at the same timestamp are sorted if
      * necessary.
      */
-    public static final Comparator<VisionPoseEstimate> comparator =
+    public static final Comparator<VisionPoseEstimate> sorter =
         Comparator.comparing(
                 VisionPoseEstimate::timestamp,
                 (t1, t2) -> {

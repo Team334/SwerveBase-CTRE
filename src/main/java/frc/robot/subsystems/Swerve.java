@@ -392,7 +392,7 @@ public class Swerve extends SwerveDrivetrain implements Subsystem, SelfChecked {
 
   /** Returns the robot's estimated rotation at the given timestamp. */
   public Rotation2d getHeadingAtTime(double timestamp) {
-    return Rotation2d.kZero; // TODO
+    return samplePoseAt(timestamp).orElse(getPose()).getRotation();
   }
 
   /** Wrapper for getting current robot-relative chassis speeds. */
@@ -451,7 +451,7 @@ public class Swerve extends SwerveDrivetrain implements Subsystem, SelfChecked {
     DogLog.log("Swerve/Detected Tags", _detectedTags.toArray(Pose3d[]::new));
 
     if (!_ignoreVisionEstimates) {
-      _acceptedEstimates.sort(VisionPoseEstimate.comparator);
+      _acceptedEstimates.sort(VisionPoseEstimate.sorter);
 
       _acceptedEstimates.forEach(
           (e) -> {
