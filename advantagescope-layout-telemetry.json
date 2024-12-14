@@ -19,12 +19,13 @@
             "/NT/Faults/Active Faults",
             "/Robot/Faults",
             "/Robot/Faults/Counts",
-            "/Robot/Swerve/Desired Speeds",
-            "/Robot/Swerve/Speeds"
+            "/Robot/Swerve",
+            "/Robot/Swerve/left-arducam",
+            "/Robot/Swerve/left-arducam/Estimate"
           ]
         },
         "tabs": {
-          "selected": 2,
+          "selected": 1,
           "tabs": [
             {
               "type": 0,
@@ -45,6 +46,34 @@
                     "logType": "Pose2d",
                     "visible": true,
                     "options": {}
+                  },
+                  {
+                    "type": "vision",
+                    "logKey": "NT:/Robot/Swerve/Detected Tags",
+                    "logType": "Pose3d[]",
+                    "visible": true,
+                    "options": {
+                      "color": "#00ff00",
+                      "size": "normal"
+                    }
+                  },
+                  {
+                    "type": "ghost",
+                    "logKey": "NT:/Robot/Swerve/Accepted Estimates",
+                    "logType": "Pose3d[]",
+                    "visible": true,
+                    "options": {
+                      "color": "#00ff00"
+                    }
+                  },
+                  {
+                    "type": "ghost",
+                    "logKey": "NT:/Robot/Swerve/Rejected Estimates",
+                    "logType": "Pose3d[]",
+                    "visible": true,
+                    "options": {
+                      "color": "#ffff00"
+                    }
                   }
                 ],
                 "game": "2024 Field",
