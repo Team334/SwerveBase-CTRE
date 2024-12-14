@@ -9,9 +9,6 @@ import static frc.lib.UnitTestingUtil.*;
 import static frc.lib.UnitTestingUtil.run;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import dev.doglog.DogLog;
-import dev.doglog.DogLogOptions;
-import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj2.command.Command;
 import frc.lib.FaultsTable.Fault;
@@ -100,18 +97,11 @@ public class AdvancedSubsystemTest {
 
   @Test
   public void currentCommandName() {
-    DogLog.setOptions(new DogLogOptions().withNtPublish(true));
-
-    var name =
-        NetworkTableInstance.getDefault()
-            .getTable("/Robot/TestImpl")
-            .getStringTopic("Current Command")
-            .subscribe("");
     var test = idle(_sub).withName("Test Command");
 
     run(test, 3);
 
-    assertEquals("Test Command", name.get());
+    assertEquals("Test Command", _sub.getCurrentCommand().getName()); // TODO
   }
 
   public class TestImpl extends AdvancedSubsystem {

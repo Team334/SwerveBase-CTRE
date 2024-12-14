@@ -18,14 +18,15 @@ import com.ctre.phoenix6.swerve.SwerveRequest.*;
 import dev.doglog.DogLog;
 import edu.wpi.first.epilogue.Logged;
 import edu.wpi.first.epilogue.Logged.Strategy;
+import edu.wpi.first.math.VecBuilder;
 import edu.wpi.first.math.geometry.Pose2d;
+import edu.wpi.first.math.geometry.Pose3d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.kinematics.SwerveDriveKinematics;
 import edu.wpi.first.math.kinematics.SwerveModuleState;
 import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.wpilibj.Notifier;
-import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj.RobotController;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Subsystem;
@@ -37,11 +38,19 @@ import frc.lib.FaultsTable.FaultType;
 import frc.lib.InputStream;
 import frc.lib.SelfChecked;
 import frc.robot.Constants;
+import frc.robot.Constants.FieldConstants;
 import frc.robot.Constants.SwerveConstants;
+import frc.robot.Constants.VisionConstants;
+import frc.robot.Robot;
 import frc.robot.utils.SysId;
+import frc.robot.utils.VisionPoseEstimator;
+import frc.robot.utils.VisionPoseEstimator.VisionPoseEstimate;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.function.BiConsumer;
+import org.photonvision.simulation.VisionSystemSim;
 
 @Logged(strategy = Strategy.OPT_IN)
 public class Swerve extends SwerveDrivetrain implements Subsystem, SelfChecked {
@@ -123,6 +132,23 @@ public class Swerve extends SwerveDrivetrain implements Subsystem, SelfChecked {
   @Logged(name = "Is Open Loop")
   private boolean _isOpenLoop = true;
 
+  @Logged(name = "Ignore Vision Estimates")
+  private boolean _ignoreVisionEstimates = false;
+
+  @Logged(name = VisionConstants.leftArducamName)
+  private final VisionPoseEstimator _leftArducam =
+      VisionPoseEstimator.buildFromConstants(VisionConstants.leftArducam);
+
+  // for easy iteration with multiple cameras
+  private final List<VisionPoseEstimator> _cameras = List.of(_leftArducam);
+
+  private final List<VisionPoseEstimate> _acceptedEstimates = new ArrayList<>();
+  private final List<VisionPoseEstimate> _rejectedEstimates = new ArrayList<>();
+
+  private final Set<Pose3d> _detectedTags = new HashSet<>();
+
+  private final VisionSystemSim _visionSystemSim;
+
   /**
    * Creates a new CommandSwerveDrivetrain.
    *
@@ -169,7 +195,16 @@ public class Swerve extends SwerveDrivetrain implements Subsystem, SelfChecked {
 
     registerFallibles();
 
-    if (RobotBase.isSimulation()) startSimThread();
+    if (Robot.isSimulation()) {
+      startSimThread();
+
+      _visionSystemSim = new VisionSystemSim("Vision System Sim");
+      _visionSystemSim.addAprilTags(FieldConstants.fieldLayout);
+
+      _cameras.forEach(cam -> _visionSystemSim.addCamera(cam.getCameraSim(), cam.robotToCam));
+    } else {
+      _visionSystemSim = null;
+    }
   }
 
   // COPIED FROM ADVANCED SUBSYSTEM
@@ -355,13 +390,46 @@ public class Swerve extends SwerveDrivetrain implements Subsystem, SelfChecked {
     return getPose().getRotation();
   }
 
+  /** Returns the robot's estimated rotation at the given timestamp. */
+  public Rotation2d getHeadingAtTime(double timestamp) {
+    return samplePoseAt(timestamp).orElse(getPose()).getRotation();
+  }
+
   /** Wrapper for getting current robot-relative chassis speeds. */
   public ChassisSpeeds getChassisSpeeds() {
     return getState().Speeds;
   }
 
+  // updates pose estimator with vision
+  private void updateVisionPoseEstimates() {
+    _acceptedEstimates.clear();
+    _rejectedEstimates.clear();
+
+    _detectedTags.clear();
+
+    for (VisionPoseEstimator cam : _cameras) {
+      cam.update(this::getHeadingAtTime);
+
+      var estimates = cam.getNewEstimates();
+
+      // process estimates
+      estimates.forEach(
+          (estimate) -> {
+            // add all detected tag poses
+            for (int id : estimate.detectedTags()) {
+              FieldConstants.fieldLayout.getTagPose(id).ifPresent(pose -> _detectedTags.add(pose));
+            }
+
+            // add robot poses to their corresponding arrays
+            if (estimate.isValid()) _acceptedEstimates.add(estimate);
+            else _rejectedEstimates.add(estimate);
+          });
+    }
+  }
+
   @Override
   public void periodic() {
+    // ---- advanced subsystem periodic ----
     String currentCommandName = "None";
 
     if (getCurrentCommand() != null) {
@@ -369,6 +437,36 @@ public class Swerve extends SwerveDrivetrain implements Subsystem, SelfChecked {
     }
 
     DogLog.log(getName() + "/Current Command", currentCommandName);
+
+    // ---- this subsystem's periodic ----
+    updateVisionPoseEstimates();
+
+    DogLog.log(
+        "Swerve/Accepted Estimates",
+        _acceptedEstimates.stream().map(VisionPoseEstimate::pose).toArray(Pose3d[]::new));
+    DogLog.log(
+        "Swerve/Rejected Estimates",
+        _rejectedEstimates.stream().map(VisionPoseEstimate::pose).toArray(Pose3d[]::new));
+
+    DogLog.log("Swerve/Detected Tags", _detectedTags.toArray(Pose3d[]::new));
+
+    if (!_ignoreVisionEstimates) {
+      _acceptedEstimates.sort(VisionPoseEstimate.sorter);
+
+      _acceptedEstimates.forEach(
+          (e) -> {
+            var stdDevs = e.stdDevs();
+            addVisionMeasurement(
+                e.pose().toPose2d(),
+                e.timestamp(),
+                VecBuilder.fill(stdDevs[0], stdDevs[1], stdDevs[2]));
+          });
+    }
+  }
+
+  @Override
+  public void simulationPeriodic() {
+    _visionSystemSim.update(getPose()); // TODO
   }
 
   private Command selfCheckModule(String name, SwerveModule module) {

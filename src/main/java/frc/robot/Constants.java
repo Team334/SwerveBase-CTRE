@@ -6,11 +6,17 @@ package frc.robot;
 
 import static edu.wpi.first.units.Units.*;
 
+import edu.wpi.first.apriltag.AprilTagFieldLayout;
+import edu.wpi.first.apriltag.AprilTagFields;
+import edu.wpi.first.math.geometry.Rotation3d;
+import edu.wpi.first.math.geometry.Transform3d;
+import edu.wpi.first.math.geometry.Translation3d;
 import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.units.measure.Distance;
 import edu.wpi.first.units.measure.Frequency;
 import edu.wpi.first.units.measure.LinearVelocity;
 import frc.robot.generated.TunerConstants;
+import frc.robot.utils.VisionPoseEstimator.VisionPoseEstimatorConstants;
 
 /**
  * The Constants class provides a convenient place for teams to hold robot-wide numerical or boolean
@@ -25,6 +31,31 @@ public final class Constants {
 
   public static class Ports {
     public static final int driverController = 0;
+  }
+
+  public static class FieldConstants {
+    public static final AprilTagFieldLayout fieldLayout =
+        AprilTagFieldLayout.loadField(AprilTagFields.k2024Crescendo);
+  }
+
+  public static class VisionConstants {
+    public static final String leftArducamName = "left-arducam";
+
+    public static final double[] singleTagBaseStdDevs = new double[] {5, 5, 5};
+    public static final double[] multiTagBaseStdDevs = new double[] {1, 1, 1};
+
+    public static final double xBoundMargin = 0.01;
+    public static final double yBoundMargin = 0.01;
+    public static final double zBoundMargin = 0.01;
+
+    public static final VisionPoseEstimatorConstants leftArducam =
+        new VisionPoseEstimatorConstants(
+            leftArducamName,
+            new Transform3d(new Translation3d(0, 0, 1), new Rotation3d()),
+            0.2,
+            0.0001,
+            3,
+            7);
   }
 
   public static class SwerveConstants {

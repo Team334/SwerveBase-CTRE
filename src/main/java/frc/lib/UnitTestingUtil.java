@@ -2,7 +2,9 @@ package frc.lib;
 
 import static edu.wpi.first.units.Units.Seconds;
 
+import dev.doglog.DogLog;
 import edu.wpi.first.hal.HAL;
+import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.units.measure.Time;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.simulation.DriverStationSim;
@@ -16,12 +18,26 @@ import edu.wpi.first.wpilibj2.command.CommandScheduler;
 public class UnitTestingUtil {
   public static final Time TICK_RATE = Seconds.of(0.02);
 
+  private static NetworkTableInstance _ntInst = null;
+
+  /**
+   * Returns the network tables instance for the current unit test. This is null when there is no
+   * unit test running.
+   */
+  public static NetworkTableInstance getNtInst() {
+    return _ntInst;
+  }
+
   /** Sets up DS and initializes HAL with default values and asserts that it doesn't fail. */
   public static void setupTests() {
     assert HAL.initialize(500, 0);
 
+    _ntInst = NetworkTableInstance.create();
+
     DriverStationSim.setEnabled(true);
     DriverStationSim.notifyNewData();
+
+    DogLog.setEnabled(false); // disabling doglog since it logs to the default nt instance
 
     FaultLogger.clear();
     FaultLogger.unregisterAll();
@@ -31,23 +47,25 @@ public class UnitTestingUtil {
     Timer.delay(0.100);
   }
 
-  /** Resets the CommandScheduler. */
+  /** Resets the CommandScheduler and the test NT instance. */
   public static void reset() {
+    _ntInst.close();
+    _ntInst = null;
+
     CommandScheduler.getInstance().unregisterAllSubsystems();
     CommandScheduler.getInstance().cancelAll();
   }
 
   /**
-   * Resets CommandScheduler and closes all subsystems. Please call in an @AfterEach method!
+   * Resets CommandScheduler and NT and closes all closeables. Please call in an @AfterEach method!
    *
-   * @param subsystems All subsystems that need to be closed.
+   * @param closeables All closeables that need to be closed.
    */
-  public static void reset(AutoCloseable... subsystems) throws Exception {
-    CommandScheduler.getInstance().unregisterAllSubsystems();
-    CommandScheduler.getInstance().cancelAll();
+  public static void reset(AutoCloseable... closeables) throws Exception {
+    reset();
 
-    for (AutoCloseable subsystem : subsystems) {
-      subsystem.close();
+    for (AutoCloseable closeable : closeables) {
+      closeable.close();
     }
   }
 
