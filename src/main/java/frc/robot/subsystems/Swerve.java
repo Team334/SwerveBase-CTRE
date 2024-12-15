@@ -318,11 +318,6 @@ public class Swerve extends SwerveDrivetrain implements Subsystem, SelfChecked {
     return run(() -> {
           drive(velX.get(), velY.get(), velOmega.get());
         })
-        .beforeStarting(
-            () -> {
-              _isFieldOriented = true;
-              _isOpenLoop = false;
-            })
         .withName("Drive");
   }
 
