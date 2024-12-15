@@ -6,6 +6,7 @@ import dev.doglog.DogLog;
 import edu.wpi.first.hal.HAL;
 import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.units.measure.Time;
+import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.simulation.DriverStationSim;
 import edu.wpi.first.wpilibj.simulation.SimHooks;
@@ -37,7 +38,11 @@ public class UnitTestingUtil {
     DriverStationSim.setEnabled(true);
     DriverStationSim.notifyNewData();
 
+    assert DriverStation.isEnabled();
+
     DogLog.setEnabled(false); // disabling doglog since it logs to the default nt instance
+
+    FaultLogger.setup(_ntInst);
 
     FaultLogger.clear();
     FaultLogger.unregisterAll();
@@ -121,7 +126,7 @@ public class UnitTestingUtil {
 
   /**
    * Schedules a command and runs it until it ends. Be careful -- if the command you give never
-   * ends, this will be an infinate loop!
+   * ends, this will be an infinite loop!
    *
    * @param command
    */

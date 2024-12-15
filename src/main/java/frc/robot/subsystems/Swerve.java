@@ -49,7 +49,6 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.function.BiConsumer;
 import org.photonvision.simulation.VisionSystemSim;
 
 @Logged(strategy = Strategy.OPT_IN)
@@ -58,7 +57,8 @@ public class Swerve extends SwerveDrivetrain implements Subsystem, SelfChecked {
   private Set<Fault> _faults = new HashSet<Fault>();
   private FaultsTable _faultsTable =
       new FaultsTable(
-          NetworkTableInstance.getDefault().getTable("Self Check"), getName() + " Faults");
+          NetworkTableInstance.getDefault().getTable("Self Check"),
+          getName() + " Faults"); // TODO: watch out if unit testing
 
   private boolean _hasError = false;
 
@@ -209,6 +209,18 @@ public class Swerve extends SwerveDrivetrain implements Subsystem, SelfChecked {
 
   // COPIED FROM ADVANCED SUBSYSTEM
 
+  /**
+   * Returns the name of the command that's currently requiring this subsystem. Is "None" when the
+   * command in null.
+   */
+  public final String currentCommandName() {
+    if (getCurrentCommand() != null) {
+      return getCurrentCommand().getName();
+    }
+
+    return "None";
+  }
+
   /** Adds a new fault under this subsystem. */
   private final void addFault(String description, FaultType faultType) {
     _hasError = (faultType == FaultType.ERROR);
@@ -247,7 +259,7 @@ public class Swerve extends SwerveDrivetrain implements Subsystem, SelfChecked {
   /** Returns a full Command that self checks this Subsystem for pre-match. */
   public final Command fullSelfCheck() {
     Command selfCheck =
-        sequence(runOnce(this::clearFaults), selfCheck(this::addFault).until(this::hasError))
+        sequence(runOnce(this::clearFaults), selfCheck().until(this::hasError))
             .withName(getName() + " Self Check");
 
     return selfCheck;
@@ -430,13 +442,7 @@ public class Swerve extends SwerveDrivetrain implements Subsystem, SelfChecked {
   @Override
   public void periodic() {
     // ---- advanced subsystem periodic ----
-    String currentCommandName = "None";
-
-    if (getCurrentCommand() != null) {
-      currentCommandName = getCurrentCommand().getName();
-    }
-
-    DogLog.log(getName() + "/Current Command", currentCommandName);
+    DogLog.log(getName() + "/Current Command", currentCommandName());
 
     // ---- this subsystem's periodic ----
     updateVisionPoseEstimates();
@@ -470,11 +476,11 @@ public class Swerve extends SwerveDrivetrain implements Subsystem, SelfChecked {
   }
 
   private Command selfCheckModule(String name, SwerveModule module) {
-    return shiftSequence();
+    return shiftSequence(); // TODO
   }
 
   @Override
-  public Command selfCheck(BiConsumer<String, FaultType> faults) {
+  public Command selfCheck() {
     return shiftSequence(
         // check all modules individually
         selfCheckModule("Front Left", getModule(0)),

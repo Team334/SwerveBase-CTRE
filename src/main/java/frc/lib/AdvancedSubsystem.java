@@ -17,15 +17,31 @@ import java.util.Set;
 public abstract class AdvancedSubsystem extends SubsystemBase
     implements SelfChecked, AutoCloseable {
   // faults and the table containing them
-  private Set<Fault> _faults = new HashSet<Fault>();
-  private FaultsTable _faultsTable =
-      new FaultsTable(
-          NetworkTableInstance.getDefault().getTable("Self Check"), getName() + " Faults");
+  private final Set<Fault> _faults = new HashSet<Fault>();
+  private final FaultsTable _faultsTable;
 
   @Logged(name = "Has Error")
   private boolean _hasError = false;
 
-  public AdvancedSubsystem() {}
+  public AdvancedSubsystem() {
+    this(NetworkTableInstance.getDefault());
+  }
+
+  public AdvancedSubsystem(NetworkTableInstance ntInst) {
+    _faultsTable = new FaultsTable(ntInst.getTable("Self Check"), getName() + " Faults");
+  }
+
+  /**
+   * Returns the name of the command that's currently requiring this subsystem. Is "None" when the
+   * command in null.
+   */
+  public final String currentCommandName() {
+    if (getCurrentCommand() != null) {
+      return getCurrentCommand().getName();
+    }
+
+    return "None";
+  }
 
   /** Adds a new fault under this subsystem. */
   protected final void addFault(String description, FaultType faultType) {
@@ -65,7 +81,7 @@ public abstract class AdvancedSubsystem extends SubsystemBase
   /** Returns a full Command that self checks this Subsystem for pre-match. */
   public final Command fullSelfCheck() {
     Command selfCheck =
-        sequence(runOnce(this::clearFaults), selfCheck(this::addFault).until(this::hasError))
+        sequence(runOnce(this::clearFaults), selfCheck().until(this::hasError))
             .withName(getName() + " Self Check");
 
     return selfCheck;
@@ -73,12 +89,6 @@ public abstract class AdvancedSubsystem extends SubsystemBase
 
   @Override
   public void periodic() {
-    String currentCommandName = "None";
-
-    if (getCurrentCommand() != null) {
-      currentCommandName = getCurrentCommand().getName();
-    }
-
-    DogLog.log(getName() + "/Current Command", currentCommandName);
+    DogLog.log(getName() + "/Current Command", currentCommandName());
   }
 }

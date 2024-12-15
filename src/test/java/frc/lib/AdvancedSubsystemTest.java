@@ -9,18 +9,14 @@ import static frc.lib.UnitTestingUtil.*;
 import static frc.lib.UnitTestingUtil.run;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj2.command.Command;
 import frc.lib.FaultsTable.Fault;
 import frc.lib.FaultsTable.FaultType;
-import java.util.function.BiConsumer;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 public class AdvancedSubsystemTest {
-  static final double DELTA = 1e-2; // acceptable deviation range
-
   private TestImpl _sub;
 
   @BeforeEach
@@ -36,15 +32,10 @@ public class AdvancedSubsystemTest {
   }
 
   @Test
-  public void robotIsEnabled() {
-    assert DriverStation.isEnabled();
-  }
-
-  @Test
   public void addFault() {
     _sub.addFault("FAULT 1", FaultType.ERROR);
 
-    assertEquals(_sub.getFaults().size(), 1, DELTA);
+    assertEquals(1, _sub.getFaults().size());
 
     assert _sub.hasFault("FAULT 1", FaultType.ERROR);
   }
@@ -62,7 +53,7 @@ public class AdvancedSubsystemTest {
     _sub.addFault("FAULT 1", FaultType.ERROR);
     _sub.addFault("FAULT 1", FaultType.ERROR);
 
-    assertEquals(_sub.getFaults().size(), 1, DELTA);
+    assertEquals(1, _sub.getFaults().size());
   }
 
   @Test
@@ -72,7 +63,7 @@ public class AdvancedSubsystemTest {
 
     _sub.clearFaults();
 
-    assertEquals(_sub.getFaults().size(), 0, DELTA);
+    assertEquals(0, _sub.getFaults().size());
   }
 
   @Test
@@ -87,7 +78,7 @@ public class AdvancedSubsystemTest {
     runToCompletion(_sub.fullSelfCheck());
 
     // should give FAULT 3 error
-    assertEquals(_sub.getFaults().size(), 3, DELTA);
+    assertEquals(3, _sub.getFaults().size());
 
     // should contain these faults
     assert _sub.hasFault("FAULT 1", FaultType.WARNING);
@@ -97,63 +88,46 @@ public class AdvancedSubsystemTest {
 
   @Test
   public void currentCommandName() {
+    assertEquals("None", _sub.currentCommandName()); // doing nothing
+
     var test = idle(_sub).withName("Test Command");
 
     run(test, 3);
 
-    assertEquals("Test Command", _sub.getCurrentCommand().getName()); // TODO
+    assertEquals("Test Command", _sub.currentCommandName());
   }
 
   public class TestImpl extends AdvancedSubsystem {
-    private final BaseIO _io = new TestIO();
-
-    private interface BaseIO extends SelfChecked {
-      public double getEncoderSpeed();
+    public TestImpl() {
+      super(UnitTestingUtil.getNtInst());
     }
 
-    // irl this would be for example "TalonIO" (handles real/sim) or "NoneIO" (handles no subsystem)
-    private class TestIO implements BaseIO {
-      private final boolean _fault1 = true;
-      private final boolean _fault2 = true;
-      private final boolean _fault3 = true;
-
-      @Override
-      public double getEncoderSpeed() {
-        return 1.0;
-      }
-
-      @Override
-      public Command selfCheck(BiConsumer<String, FaultType> faults) {
-        return shiftSequence(
-            runOnce(
-                () -> {
-                  if (_fault1) faults.accept("FAULT 1", FaultType.WARNING);
-                }),
-            runOnce(
-                () -> {
-                  if (_fault2) faults.accept("FAULT 2", FaultType.WARNING);
-                }),
-            runOnce(
-                () -> {
-                  if (_fault3) faults.accept("FAULT 3", FaultType.ERROR);
-                }));
-      }
-    }
-
-    // uses the io
     public double speed() {
-      return _io.getEncoderSpeed();
+      return 0;
     }
 
     @Override
-    public Command selfCheck(BiConsumer<String, FaultType> faults) {
+    public Command selfCheck() {
       return shiftSequence(
-          _io.selfCheck(faults), // self check io devices first
+          // check devices first
           runOnce(
               () -> {
-                if (speed() < 2) faults.accept("TOO SLOW", FaultType.WARNING);
-              }) // then check the whole subsystem
-          );
+                if (true) addFault("FAULT 1", FaultType.WARNING);
+              }),
+          runOnce(
+              () -> {
+                if (true) addFault("FAULT 2", FaultType.WARNING);
+              }),
+          runOnce(
+              () -> {
+                if (true) addFault("FAULT 3", FaultType.ERROR);
+              }),
+
+          // then check the subsystem
+          runOnce(
+              () -> {
+                if (speed() < 2) addFault("TOO SLOW", FaultType.WARNING);
+              }));
     }
 
     @Override

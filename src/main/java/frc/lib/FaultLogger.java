@@ -8,7 +8,6 @@ import com.ctre.phoenix6.hardware.CANcoder;
 import com.ctre.phoenix6.hardware.Pigeon2;
 import com.ctre.phoenix6.hardware.TalonFX;
 import dev.doglog.DogLog;
-import edu.wpi.first.networktables.NetworkTable;
 import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.wpilibj.DriverStation;
 import frc.lib.FaultsTable.Fault;
@@ -45,9 +44,21 @@ public final class FaultLogger {
   private static final Set<Fault> totalFaults = new HashSet<>();
 
   // NETWORK TABLES
-  private static final NetworkTable base = NetworkTableInstance.getDefault().getTable("Faults");
-  private static final FaultsTable activeAlerts = new FaultsTable(base, "Active Faults");
-  private static final FaultsTable totalAlerts = new FaultsTable(base, "Total Faults");
+  private static FaultsTable activeAlerts;
+  private static FaultsTable totalAlerts;
+
+  /** Must be called to setup the fault logger. */
+  public static void setup(NetworkTableInstance ntInst) {
+    var base = ntInst.getTable("Faults");
+
+    activeAlerts = new FaultsTable(base, "Active Faults");
+    totalAlerts = new FaultsTable(base, "Total Faults");
+  }
+
+  /** Must be called to setup the fault logger. */
+  public static void setup() {
+    setup(NetworkTableInstance.getDefault());
+  }
 
   /** Whether or not to print new faults into the console. */
   public static void enableConsole(boolean enable) {
@@ -117,7 +128,7 @@ public final class FaultLogger {
     switch (fault.type()) {
       case ERROR -> DriverStation.reportError("[Fault Logger] " + fault.toString(), false);
       case WARNING -> DriverStation.reportWarning("[Fault Logger] " + fault.toString(), false);
-      case INFO -> System.out.println("[FaultLogger] " + fault.toString());
+      case INFO -> System.out.println("[Fault Logger] " + fault.toString());
     }
   }
 

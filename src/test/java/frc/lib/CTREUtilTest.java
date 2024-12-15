@@ -41,21 +41,21 @@ public class CTREUtilTest {
   public void motorName() {
     var name = CTREUtil.getName(_motor);
 
-    assertEquals(name, "TalonFX (1)");
+    assertEquals("TalonFX (1)", name);
   }
 
   @Test
   public void gyroName() {
     var name = CTREUtil.getName(_gyro);
 
-    assertEquals(name, "Pigeon (2)");
+    assertEquals("Pigeon (2)", name);
   }
 
   @Test
   public void encoderName() {
     var name = CTREUtil.getName(_encoder);
 
-    assertEquals(name, "CANcoder (3)");
+    assertEquals("CANcoder (3)", name);
   }
 
   @Test

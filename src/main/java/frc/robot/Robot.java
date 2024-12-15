@@ -57,6 +57,8 @@ public class Robot extends TimedRobot {
 
     DriverStation.silenceJoystickConnectionWarning(isSimulation());
 
+    FaultLogger.setup();
+
     configureBindings();
 
     SmartDashboard.putData(

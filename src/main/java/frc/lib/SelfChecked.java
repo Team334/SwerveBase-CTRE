@@ -5,16 +5,13 @@ import static edu.wpi.first.wpilibj2.command.Commands.*;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SequentialCommandGroup;
 import frc.lib.FaultsTable.FaultType;
-import java.util.function.BiConsumer;
 
 public interface SelfChecked {
   /**
-   * Returns a Command that self checks this system.
-   *
-   * @param faults A consumer that adds a given fault to the subsystem with the specified fault
-   *     type.
+   * Returns a Command that self checks this system. This command should utilize the advanced
+   * subsytem's {@link AdvancedSubsystem#addFault(String, FaultType)}.
    */
-  public default Command selfCheck(BiConsumer<String, FaultType> faults) {
+  public default Command selfCheck() {
     return none();
   }
 

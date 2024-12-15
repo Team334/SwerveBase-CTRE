@@ -176,7 +176,10 @@ public interface InputStream extends DoubleSupplier {
    * @return A stream with the same output as this one.
    */
   public default InputStream log(String key) {
-    DoublePublisher pub = NetworkTableInstance.getDefault().getDoubleTopic(key).publish();
+    DoublePublisher pub =
+        NetworkTableInstance.getDefault()
+            .getDoubleTopic(key)
+            .publish(); // TODO: watch out unit tests
     return () -> {
       double val = this.get();
       pub.set(val);
