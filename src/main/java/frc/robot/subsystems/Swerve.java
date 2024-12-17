@@ -135,12 +135,12 @@ public class Swerve extends SwerveDrivetrain implements Subsystem, SelfChecked {
   @Logged(name = "Ignore Vision Estimates")
   private boolean _ignoreVisionEstimates = false;
 
-  @Logged(name = VisionConstants.leftArducamName)
-  private final VisionPoseEstimator _leftArducam =
-      VisionPoseEstimator.buildFromConstants(VisionConstants.leftArducam);
+  @Logged(name = VisionConstants.blueArducamName)
+  private final VisionPoseEstimator _blueArducam =
+      VisionPoseEstimator.buildFromConstants(VisionConstants.blueArducam);
 
   // for easy iteration with multiple cameras
-  private final List<VisionPoseEstimator> _cameras = List.of(_leftArducam);
+  private final List<VisionPoseEstimator> _cameras = List.of(_blueArducam);
 
   private final List<VisionPoseEstimate> _acceptedEstimates = new ArrayList<>();
   private final List<VisionPoseEstimate> _rejectedEstimates = new ArrayList<>();
