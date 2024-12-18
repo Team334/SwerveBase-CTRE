@@ -20,6 +20,8 @@ import java.util.Set;
 import java.util.function.BooleanSupplier;
 import java.util.function.Supplier;
 
+import org.photonvision.PhotonCamera;
+
 // (from team 1155 but slightly modified)
 
 /**
@@ -238,24 +240,12 @@ public final class FaultLogger {
         FaultType.WARNING);
   }
 
-  //   /**
-  //    * Registers a new NavX.
-  //    *
-  //    * @param navx The NavX.
-  //    */
-  //   public static void register(AHRS navx) {
-  //     register(() -> !navx.isConnected(), "NavX: Disconnected", FaultType.ERROR);
-  //   }
-
-  //   /**
-  //    * Registers a new PhotonCamera. Detailed PhotonVision logs are located on the web UI, so
-  // this is just for very basic
-  //    * telemetry to have in a dashboard when testing.
-  //    *
-  //    * @param photonCamera The PhotonCamera.
-  //    */
-  //   public static void register(PhotonCamera photonCamera) {
-  //     register(() -> !photonCamera.isConnected(), photonCamera.getName() + ": Disconnected.",
-  // FaultType.ERROR);
-  //   }
+  /**
+   * Registers a new PhotonCamera (more detailed logs on the web ui).
+   * 
+   * @param photonCamera The PhotonCamera.
+   */
+  public static void register(PhotonCamera photonCamera) {
+    register(() -> !photonCamera.isConnected(), photonCamera.getName() + ": Disconnected.", FaultType.ERROR);
+  }
 }

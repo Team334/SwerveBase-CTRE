@@ -14,6 +14,7 @@ import edu.wpi.first.math.geometry.Transform3d;
 import edu.wpi.first.networktables.NetworkTableInstance;
 import frc.robot.Constants.FieldConstants;
 import frc.robot.Constants.VisionConstants;
+import frc.lib.FaultLogger;
 import frc.robot.Robot;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -203,6 +204,8 @@ public class VisionPoseEstimator implements AutoCloseable {
     _poseEstimator.setMultiTagFallbackStrategy(PoseStrategy.LOWEST_AMBIGUITY);
 
     _logPath = "Swerve/" + camName + "/Estimate/";
+
+    FaultLogger.register(_camera);
 
     if (Robot.isSimulation()) {
       var cameraProps = new SimCameraProperties();
