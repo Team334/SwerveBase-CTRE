@@ -45,15 +45,19 @@ public class Robot extends TimedRobot {
 
   private Command _autonomousCommand = Autos.none();
 
+  private boolean _fileOnlySet = false;
+
   /**
    * This function is run when the robot is first started up and should be used for any
    * initialization code.
    */
   public Robot() {
     // set up loggers
-    DogLog.setOptions(new DogLogOptions().withNtPublish(true));
+    DogLog.setOptions(new DogLogOptions().withCaptureDs(true));
     Epilogue.bind(this);
     SignalLogger.start();
+
+    setFileOnly(false); // file-only once connected to fms
 
     DriverStation.silenceJoystickConnectionWarning(isSimulation());
 
@@ -70,6 +74,16 @@ public class Robot extends TimedRobot {
             .withName("Robot Self Check"));
 
     addPeriodic(FaultLogger::update, 1);
+  }
+
+  // set logging to be file only or not
+  private void setFileOnly(boolean fileOnly) {
+    DogLog.setOptions(DogLog.getOptions().withNtPublish(!fileOnly));
+
+    Epilogue.configure(
+        config -> {
+          // TODO
+        });
   }
 
   private void configureBindings() {
@@ -103,6 +117,12 @@ public class Robot extends TimedRobot {
     // and running subsystem periodic() methods.  This must be called from the robot's periodic
     // block in order for anything in the Command-based framework to work.
     CommandScheduler.getInstance().run();
+
+    if (DriverStation.isFMSAttached() && !_fileOnlySet) {
+      setFileOnly(true);
+
+      _fileOnlySet = true;
+    }
   }
 
   /** This autonomous runs the autonomous command. */

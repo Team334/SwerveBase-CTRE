@@ -19,7 +19,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.BooleanSupplier;
 import java.util.function.Supplier;
-
 import org.photonvision.PhotonCamera;
 
 // (from team 1155 but slightly modified)
@@ -242,10 +241,13 @@ public final class FaultLogger {
 
   /**
    * Registers a new PhotonCamera (more detailed logs on the web ui).
-   * 
+   *
    * @param photonCamera The PhotonCamera.
    */
   public static void register(PhotonCamera photonCamera) {
-    register(() -> !photonCamera.isConnected(), photonCamera.getName() + ": Disconnected.", FaultType.ERROR);
+    register(
+        () -> !photonCamera.isConnected(),
+        photonCamera.getName() + ": Disconnected.",
+        FaultType.ERROR);
   }
 }
