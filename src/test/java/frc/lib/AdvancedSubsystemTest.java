@@ -6,8 +6,7 @@ package frc.lib;
 
 import static edu.wpi.first.wpilibj2.command.Commands.*;
 import static frc.lib.UnitTestingUtil.*;
-import static frc.lib.UnitTestingUtil.run;
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.*;
 
 import edu.wpi.first.wpilibj2.command.Command;
 import frc.lib.FaultsTable.Fault;

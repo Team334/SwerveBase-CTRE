@@ -13,6 +13,10 @@ import dev.doglog.DogLogOptions;
 import edu.wpi.first.epilogue.Epilogue;
 import edu.wpi.first.epilogue.Logged;
 import edu.wpi.first.epilogue.Logged.Strategy;
+import edu.wpi.first.epilogue.logging.DataLogger;
+import edu.wpi.first.epilogue.logging.FileLogger;
+import edu.wpi.first.epilogue.logging.NTDataLogger;
+import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.wpilibj.DataLogManager;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.TimedRobot;
@@ -45,6 +49,8 @@ public class Robot extends TimedRobot {
 
   private Command _autonomousCommand = Autos.none();
 
+  private final NetworkTableInstance _ntInst;
+
   private boolean _fileOnlySet = false;
 
   /**
@@ -52,12 +58,23 @@ public class Robot extends TimedRobot {
    * initialization code.
    */
   public Robot() {
+    this(NetworkTableInstance.getDefault());
+  }
+
+  /**
+   * This function is run when the robot is first started up and should be used for any
+   * initialization code.
+   */
+  public Robot(NetworkTableInstance ntInst) {
+    _ntInst = ntInst;
+
     // set up loggers
     DogLog.setOptions(new DogLogOptions().withCaptureDs(true));
-    Epilogue.bind(this);
-    SignalLogger.start();
 
     setFileOnly(false); // file-only once connected to fms
+
+    Epilogue.bind(this);
+    SignalLogger.start();
 
     DriverStation.silenceJoystickConnectionWarning(isSimulation());
 
@@ -80,10 +97,16 @@ public class Robot extends TimedRobot {
   private void setFileOnly(boolean fileOnly) {
     DogLog.setOptions(DogLog.getOptions().withNtPublish(!fileOnly));
 
-    Epilogue.configure(
-        config -> {
-          // TODO
-        });
+    if (fileOnly) {
+      Epilogue.getConfig().dataLogger = new FileLogger(DataLogManager.getLog());
+      return;
+    }
+
+    // if doing both file and nt logging, use the datalogger multilogger setup
+    Epilogue.getConfig().dataLogger =
+        DataLogger.multi(
+            new NTDataLogger(_ntInst), // TODO: watch out unit tests
+            new FileLogger(DataLogManager.getLog()));
   }
 
   private void configureBindings() {
@@ -149,5 +172,12 @@ public class Robot extends TimedRobot {
   public void testInit() {
     // Cancels all running commands at the start of test mode.
     CommandScheduler.getInstance().cancelAll();
+  }
+
+  @Override
+  public void close() {
+    super.close();
+
+    _swerve.close();
   }
 }

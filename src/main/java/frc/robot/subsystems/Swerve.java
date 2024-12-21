@@ -58,7 +58,7 @@ public class Swerve extends SwerveDrivetrain implements Subsystem, SelfChecked {
   private FaultsTable _faultsTable =
       new FaultsTable(
           NetworkTableInstance.getDefault().getTable("Self Check"),
-          getName() + " Faults"); // TODO: watch out if unit testing
+          getName() + " Faults"); // TODO: watch out unit tests
 
   private boolean _hasError = false;
 

@@ -12,7 +12,6 @@ import edu.wpi.first.math.geometry.Rotation3d;
 import edu.wpi.first.math.geometry.Transform3d;
 import edu.wpi.first.math.geometry.Translation3d;
 import edu.wpi.first.math.util.Units;
-import frc.lib.UnitTestingUtil;
 import frc.robot.utils.VisionPoseEstimator;
 import frc.robot.utils.VisionPoseEstimator.VisionPoseEstimate;
 import frc.robot.utils.VisionPoseEstimator.VisionPoseEstimatorConstants;
@@ -75,8 +74,7 @@ public class VisionPoseEstimatorTest {
             3,
             7);
 
-    _testCam =
-        VisionPoseEstimator.buildFromConstants(testCam, UnitTestingUtil.getNtInst(), _fieldLayout);
+    _testCam = VisionPoseEstimator.buildFromConstants(testCam, getNtInst(), _fieldLayout);
 
     _visionSystemSim = new VisionSystemSim("");
     _visionSystemSim.addCamera(_testCam.getCameraSim(), _testCam.robotToCam);

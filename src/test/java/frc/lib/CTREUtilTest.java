@@ -1,8 +1,7 @@
 package frc.lib;
 
-import static frc.lib.UnitTestingUtil.reset;
-import static frc.lib.UnitTestingUtil.setupTests;
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static frc.lib.UnitTestingUtil.*;
+import static org.junit.jupiter.api.Assertions.*;
 
 import com.ctre.phoenix6.StatusCode;
 import com.ctre.phoenix6.hardware.CANcoder;
