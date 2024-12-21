@@ -85,7 +85,9 @@ public class Swerve extends SwerveDrivetrain implements Subsystem, SelfChecked {
               null, // Use default ramp rate (1 V/s)
               Volts.of(4), // Reduce dynamic step voltage to 4 V to prevent brownout
               null, // Use default timeout (10 s)
-              state -> DogLog.log("SysId Translation Routine State", state.toString())),
+              state ->
+                  SignalLogger.writeString(
+                      "Swerve SysId Translation Routine State", state.toString())),
           new SysIdRoutine.Mechanism(
               volts -> setControl(_translationSysIdRequest.withVolts(volts)), null, this));
 
@@ -96,7 +98,8 @@ public class Swerve extends SwerveDrivetrain implements Subsystem, SelfChecked {
               null, // Use default ramp rate (1 V/s)
               Volts.of(7), // Use dynamic voltage of 7 V
               null, // Use default timeout (10 s)
-              state -> DogLog.log("SysId Steer Routine State", state.toString())),
+              state ->
+                  SignalLogger.writeString("Swerve SysId Steer Routine State", state.toString())),
           new SysIdRoutine.Mechanism(
               volts -> setControl(_steerSysIdRequest.withVolts(volts)), null, this));
 
@@ -109,13 +112,15 @@ public class Swerve extends SwerveDrivetrain implements Subsystem, SelfChecked {
               // This is in radians per second, but SysId only supports "volts"
               Volts.of(Math.PI),
               null, // Use default timeout (10 s)
-              state -> DogLog.log("SysId Rotation Routine State", state.toString())),
+              state ->
+                  SignalLogger.writeString(
+                      "Swerve SysId Rotation Routine State", state.toString())),
           new SysIdRoutine.Mechanism(
               output -> {
                 // output is actually radians per second, but SysId only supports "volts"
                 setControl(_rotationSysIdRequest.withRotationalRate(output.in(Volts)));
                 // also log the requested output for SysId
-                SignalLogger.writeDouble("Rotational Rate", output.in(Volts));
+                SignalLogger.writeDouble("Swerve Rotational Rate", output.in(Volts));
               },
               null,
               this));
@@ -467,11 +472,12 @@ public class Swerve extends SwerveDrivetrain implements Subsystem, SelfChecked {
 
   @Override
   public void simulationPeriodic() {
-    _visionSystemSim.update(getPose()); // TODO
+    _visionSystemSim.update(getPose()); // TODO: this might require a seperate wheel-only odom
   }
 
+  // TODO: add self check routines
   private Command selfCheckModule(String name, SwerveModule module) {
-    return shiftSequence(); // TODO
+    return shiftSequence();
   }
 
   @Override
