@@ -78,7 +78,7 @@ public class Robot extends TimedRobot {
 
     DriverStation.silenceJoystickConnectionWarning(isSimulation());
 
-    FaultLogger.setup();
+    FaultLogger.setup(_ntInst);
 
     configureBindings();
 
@@ -105,8 +105,7 @@ public class Robot extends TimedRobot {
     // if doing both file and nt logging, use the datalogger multilogger setup
     Epilogue.getConfig().backend =
         EpilogueBackend.multi(
-            new NTEpilogueBackend(_ntInst), // TODO: watch out unit tests
-            new FileBackend(DataLogManager.getLog()));
+            new NTEpilogueBackend(_ntInst), new FileBackend(DataLogManager.getLog()));
   }
 
   private void configureBindings() {

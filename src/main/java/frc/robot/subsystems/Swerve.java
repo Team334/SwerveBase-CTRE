@@ -218,6 +218,7 @@ public class Swerve extends SwerveDrivetrain implements Subsystem, SelfChecked {
    * Returns the name of the command that's currently requiring this subsystem. Is "None" when the
    * command in null.
    */
+  @Logged(name = "Current Command")
   public final String currentCommandName() {
     if (getCurrentCommand() != null) {
       return getCurrentCommand().getName();
@@ -445,9 +446,6 @@ public class Swerve extends SwerveDrivetrain implements Subsystem, SelfChecked {
 
   @Override
   public void periodic() {
-    // ---- advanced subsystem periodic ----
-    DogLog.log(getName() + "/Current Command", currentCommandName());
-
     // ---- this subsystem's periodic ----
     updateVisionPoseEstimates();
 

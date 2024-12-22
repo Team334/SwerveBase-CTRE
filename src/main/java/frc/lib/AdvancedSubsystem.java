@@ -35,6 +35,7 @@ public abstract class AdvancedSubsystem extends SubsystemBase
    * Returns the name of the command that's currently requiring this subsystem. Is "None" when the
    * command in null.
    */
+  @Logged(name = "Current Command")
   public final String currentCommandName() {
     if (getCurrentCommand() != null) {
       return getCurrentCommand().getName();
@@ -85,10 +86,5 @@ public abstract class AdvancedSubsystem extends SubsystemBase
             .withName(getName() + " Self Check");
 
     return selfCheck;
-  }
-
-  @Override
-  public void periodic() {
-    DogLog.log(getName() + "/Current Command", currentCommandName());
   }
 }
