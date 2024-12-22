@@ -5,8 +5,8 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import dev.doglog.DogLog;
 import edu.wpi.first.epilogue.Epilogue;
-import edu.wpi.first.epilogue.logging.FileLogger;
-import edu.wpi.first.epilogue.logging.MultiLogger;
+import edu.wpi.first.epilogue.logging.FileBackend;
+import edu.wpi.first.epilogue.logging.MultiBackend;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.simulation.DriverStationSim;
 import org.junit.jupiter.api.AfterEach;
@@ -31,7 +31,7 @@ public class RobotTest {
   @Test
   public void fmsFileOnly() {
     // at the start should be both nt and file logging
-    assert Epilogue.getConfig().dataLogger instanceof MultiLogger; // multilogger setup
+    assert Epilogue.getConfig().backend instanceof MultiBackend; // multilogger setup
     assert DogLog.getOptions().ntPublish();
 
     DriverStationSim.setFmsAttached(true);
@@ -42,7 +42,7 @@ public class RobotTest {
     _robot.robotPeriodic();
 
     // once the fms connects, it should be file only
-    assert Epilogue.getConfig().dataLogger instanceof FileLogger;
+    assert Epilogue.getConfig().backend instanceof FileBackend;
     assertFalse(DogLog.getOptions().ntPublish());
   }
 }

@@ -13,9 +13,9 @@ import dev.doglog.DogLogOptions;
 import edu.wpi.first.epilogue.Epilogue;
 import edu.wpi.first.epilogue.Logged;
 import edu.wpi.first.epilogue.Logged.Strategy;
-import edu.wpi.first.epilogue.logging.DataLogger;
-import edu.wpi.first.epilogue.logging.FileLogger;
-import edu.wpi.first.epilogue.logging.NTDataLogger;
+import edu.wpi.first.epilogue.logging.EpilogueBackend;
+import edu.wpi.first.epilogue.logging.FileBackend;
+import edu.wpi.first.epilogue.logging.NTEpilogueBackend;
 import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.wpilibj.DataLogManager;
 import edu.wpi.first.wpilibj.DriverStation;
@@ -98,15 +98,15 @@ public class Robot extends TimedRobot {
     DogLog.setOptions(DogLog.getOptions().withNtPublish(!fileOnly));
 
     if (fileOnly) {
-      Epilogue.getConfig().dataLogger = new FileLogger(DataLogManager.getLog());
+      Epilogue.getConfig().backend = new FileBackend(DataLogManager.getLog());
       return;
     }
 
     // if doing both file and nt logging, use the datalogger multilogger setup
-    Epilogue.getConfig().dataLogger =
-        DataLogger.multi(
-            new NTDataLogger(_ntInst), // TODO: watch out unit tests
-            new FileLogger(DataLogManager.getLog()));
+    Epilogue.getConfig().backend =
+        EpilogueBackend.multi(
+            new NTEpilogueBackend(_ntInst), // TODO: watch out unit tests
+            new FileBackend(DataLogManager.getLog()));
   }
 
   private void configureBindings() {

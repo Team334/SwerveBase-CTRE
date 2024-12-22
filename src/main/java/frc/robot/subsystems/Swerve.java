@@ -342,13 +342,17 @@ public class Swerve extends SwerveDrivetrain implements Subsystem, SelfChecked {
     ChassisSpeeds tempSpeeds = _driverChassisSpeeds;
     SwerveModuleState[] tempStates;
 
-    if (_isFieldOriented) tempSpeeds.toRobotRelativeSpeeds(getHeading());
+    // TODO: this might be too many memory allocations
+
+    if (_isFieldOriented)
+      tempSpeeds = ChassisSpeeds.fromFieldRelativeSpeeds(tempSpeeds, getHeading());
 
     tempStates = getKinematics().toSwerveModuleStates(tempSpeeds);
     SwerveDriveKinematics.desaturateWheelSpeeds(tempStates, SwerveConstants.maxTranslationalSpeed);
     tempSpeeds = getKinematics().toChassisSpeeds(tempStates);
 
-    if (_isFieldOriented) tempSpeeds.toFieldRelativeSpeeds(getHeading());
+    if (_isFieldOriented)
+      tempSpeeds = ChassisSpeeds.fromRobotRelativeSpeeds(tempSpeeds, getHeading());
 
     velX = tempSpeeds.vxMetersPerSecond;
     velY = tempSpeeds.vyMetersPerSecond;
