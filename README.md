@@ -17,7 +17,8 @@ A base project for future robots that has CTRE generated swerve drive code and P
 
 # How This Will Be Used
 - At the start of the 2025 season this project should be re-imported in the 2025 wpilib release for any additional updates.
-- After that, since this project is a template on github, the actual 2025 robot code repo can be generated from this template.
+- After that, since this project is a template on github, the actual 2025 robot code repo can be generated from this template:
+![github templates](https://docs.github.com/assets/cb-76823/mw-1440/images/help/repository/use-this-template-button.webp)
 
 ## 2025 Latest Beta Known Issues
 - To run sim, do `./gradlew simulateJava` instead of using the WPILib extension (for Epilogue to work).
