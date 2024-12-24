@@ -9,7 +9,6 @@ import static edu.wpi.first.wpilibj2.command.Commands.*;
 
 import com.ctre.phoenix6.SignalLogger;
 import dev.doglog.DogLog;
-import dev.doglog.DogLogOptions;
 import edu.wpi.first.epilogue.Epilogue;
 import edu.wpi.first.epilogue.Logged;
 import edu.wpi.first.epilogue.Logged.Strategy;
@@ -69,7 +68,7 @@ public class Robot extends TimedRobot {
     _ntInst = ntInst;
 
     // set up loggers
-    DogLog.setOptions(new DogLogOptions().withCaptureDs(true));
+    DogLog.getOptions().withCaptureDs(true);
 
     setFileOnly(false); // file-only once connected to fms
 
@@ -95,7 +94,7 @@ public class Robot extends TimedRobot {
 
   // set logging to be file only or not
   private void setFileOnly(boolean fileOnly) {
-    DogLog.setOptions(DogLog.getOptions().withNtPublish(!fileOnly));
+    DogLog.getOptions().withNtPublish(!fileOnly);
 
     if (fileOnly) {
       Epilogue.getConfig().backend = new FileBackend(DataLogManager.getLog());

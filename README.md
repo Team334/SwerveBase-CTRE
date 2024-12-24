@@ -11,6 +11,8 @@ A base project for future robots that has CTRE generated swerve drive code and P
 - A custom `VisionPoseEstimator` class that reads from a Photon Vision camera and updates the swerve pose estimator with filtered and disambiguated AprilTag vision measurements.
 
 # Todo
+- Calibrate cameras.
+- Add choreo (or pathplanner?) support.
 - Add more unit tests.
 - Add proper licenses.
 - 6328 wheel radius characterization.
