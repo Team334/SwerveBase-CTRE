@@ -68,7 +68,7 @@ public class Robot extends TimedRobot {
     _ntInst = ntInst;
 
     // set up loggers
-    DogLog.getOptions().withCaptureDs(true);
+    DogLog.setOptions(DogLog.getOptions().withCaptureDs(true));
 
     setFileOnly(false); // file-only once connected to fms
 
@@ -94,7 +94,7 @@ public class Robot extends TimedRobot {
 
   // set logging to be file only or not
   private void setFileOnly(boolean fileOnly) {
-    DogLog.getOptions().withNtPublish(!fileOnly);
+    DogLog.setOptions(DogLog.getOptions().withNtPublish(!fileOnly));
 
     if (fileOnly) {
       Epilogue.getConfig().backend = new FileBackend(DataLogManager.getLog());
