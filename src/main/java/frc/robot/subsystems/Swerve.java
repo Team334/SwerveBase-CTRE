@@ -24,6 +24,7 @@ import edu.wpi.first.math.geometry.Pose3d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.kinematics.SwerveDriveKinematics;
+import edu.wpi.first.math.kinematics.SwerveModulePosition;
 import edu.wpi.first.math.kinematics.SwerveModuleState;
 import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.wpilibj.Notifier;
@@ -41,11 +42,13 @@ import frc.robot.Constants;
 import frc.robot.Constants.FieldConstants;
 import frc.robot.Constants.SwerveConstants;
 import frc.robot.Constants.VisionConstants;
+import frc.robot.generated.TunerConstants;
 import frc.robot.Robot;
 import frc.robot.utils.SysId;
 import frc.robot.utils.VisionPoseEstimator;
 import frc.robot.utils.VisionPoseEstimator.VisionPoseEstimate;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -415,6 +418,16 @@ public class Swerve extends SwerveDrivetrain implements Subsystem, SelfChecked {
   /** Wrapper for getting current robot-relative chassis speeds. */
   public ChassisSpeeds getChassisSpeeds() {
     return getState().Speeds;
+  }
+
+  /* Wrapper for getting swerve module positions in radians. */
+  public double[] getWheelPositionsRadians(){
+    double[] distances = new double[getModules().length];
+    for (int i = 0; i < getModules().length; i++){
+      distances[i] = getModule(i).getPosition(true).distanceMeters / TunerConstants.kWheelRadius.in(Meters);
+    }
+
+    return distances;
   }
 
   // updates pose estimator with vision
