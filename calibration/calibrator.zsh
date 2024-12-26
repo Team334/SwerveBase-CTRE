@@ -1,38 +1,79 @@
-# NOT DONE HERE YET
-
-# names
-echo -n "Enter camera name: "
+# all inputs
+echo -n "Enter camera name (ex: arducam-1): "
 read -r name
 
-# echo -n "Enter input video file name: "
-# read -r input
+echo -n "Enter calibration resolution (ex: 1280x720): "
+read -r resolution
 
-# echo -n "Enter desired ffmpeg fps: "
-# read -r fps
+echo -n "Enter input video file path (ex: /path/to/input.mkv): "
+read -r input
 
-# # frame dir
-# mkdir frames1
+echo -n "Enter desired ffmpeg fps (ex: 2): "
+read -r fps
+
+echo -n "Enter grid size (ex: 14): "
+read -r n
+
+echo -n "Enter grid spacing in meters (ex: 0.012): "
+read -r spacing
+
+echo -n "Enter focal length in pixels (ex: 1015): "
+read -r focal
+
+echo -n "Enter horizontal fov in degrees (ex: 70): "
+read -r fov
+
+echo -n "Enter Nx (ex: 16): "
+read -r nx
+
+echo -n "Enter Ny (ex: 9): "
+read -r ny
+
+mrcal_to_photon="$PWD/mrcal_to_photon.py"
+
+# cd to where the input file is
+cd "$(dirname "$input")"
+
+# rename input to just the file name
+input=$(basename "$input")
+
+# calib directory name
+calibdir=$name/$resolution
+
+# make calib directory
+mkdir -p $calibdir
+cd $calibdir
+
+# move input into calib directory and create frame directory
+mv "../../$input" .
+mkdir -p frames
 
 # fill up frame directory with png frames
-# ffmpeg
+ffmpeg -i $input -vf fps=$fps frames/%04d.png
 
 # generate corners.vnl
-# mrgingham
+echo Generating corners.vnl file...
+mrgingham --jobs 8 --gridn $n 'frames/*.png' > corners.vnl 
 
-# ---- CALIBRATE ---- 
+# set up calibration globs
 evens='frames/*[02468].png'
 odds='frames/*[13579].png'
 all='frames/*.png'
 
-mrcal_calibrate=(mrcal-calibrate-cameras                                         \
-    --corners-cache corners.vnl                                                   \
-    --lensmodel LENSMODEL_SPLINED_STEREOGRAPHIC_order=3_Nx=16_Ny=9_fov_x_deg=70   \
-    --focal 1015                                                                  \
-    --object-spacing 0.012                                                        \
-    --object-width-n 14                                                           \
+lensmodel="LENSMODEL_SPLINED_STEREOGRAPHIC_order=3_Nx=${nx}_Ny=${ny}_fov_x_deg=${fov}"
+
+mrcal_calibrate=(
+    mrcal-calibrate-cameras \
+        --corners-cache corners.vnl \
+        --lensmodel $lensmodel \
+        --focal $focal \
+        --object-spacing $spacing \
+        --object-width-n $n \
 )
 
-# cross diffs
+echo Running all calibrations...
+
+# cross diff calibration
 $mrcal_calibrate $evens
 mv camera-0.cameramodel $name-evens.cameramodel
 
@@ -43,4 +84,10 @@ mv camera-0.cameramodel $name-odds.cameramodel
 $mrcal_calibrate $all
 mv camera-0.cameramodel $name.cameramodel
 
-# ---- DONE! ---- 
+# turn mrcal cameramodel to photon json
+echo Turning cameramodel into json...
+python3 $mrcal_to_photon $name.cameramodel "$name ($resolution).json"
+
+echo Finished! You should now analyze the calibration as described in the mrcal docs.
+
+# done!
