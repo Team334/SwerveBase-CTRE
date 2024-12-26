@@ -20,15 +20,6 @@ read -r spacing
 echo -n "Enter focal length in pixels (ex: 1015): "
 read -r focal
 
-echo -n "Enter horizontal fov in degrees (ex: 70): "
-read -r fov
-
-echo -n "Enter Nx (ex: 16): "
-read -r nx
-
-echo -n "Enter Ny (ex: 9): "
-read -r ny
-
 mrcal_to_photon="$PWD/mrcal_to_photon.py"
 
 # cd to where the input file is
@@ -60,12 +51,10 @@ evens='frames/*[02468].png'
 odds='frames/*[13579].png'
 all='frames/*.png'
 
-lensmodel="LENSMODEL_SPLINED_STEREOGRAPHIC_order=3_Nx=${nx}_Ny=${ny}_fov_x_deg=${fov}"
-
 mrcal_calibrate=(
     mrcal-calibrate-cameras \
         --corners-cache corners.vnl \
-        --lensmodel $lensmodel \
+        --lensmodel LENSMODEL_OPENCV8 \
         --focal $focal \
         --object-spacing $spacing \
         --object-width-n $n \
