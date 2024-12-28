@@ -13,7 +13,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 public class WheelRadiusCharacterizationTest {
-  // chassis omega during characterization (TODO: this would be tunable later)
+  // chassis omega during characterization (TODO: this would be tuneable later)
   private final double velOmega = 1;
 
   private Swerve _swerve;
@@ -34,7 +34,7 @@ public class WheelRadiusCharacterizationTest {
 
   @Test
   public void wheelRadiusCharacterization() {
-    // run enough ticks to complete 4pi radians at the given charactierzation omega
+    // run enough ticks to complete 4pi radians at the given characterization omega
     run(_characterization, (int) ((Math.PI * 4 / velOmega) / TICK_RATE.in(Seconds)));
 
     // accept with a tolerance of 0.002 meters (i think that's good?)

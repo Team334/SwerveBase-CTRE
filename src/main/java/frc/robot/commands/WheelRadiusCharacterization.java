@@ -68,7 +68,7 @@ public class WheelRadiusCharacterization extends Command {
   // Called every time the scheduler runs while the command is scheduled.
   @Override
   public void execute() {
-    _swerve.drive(0, 0, -1); // TODO: make this tunable
+    _swerve.drive(0, 0, -1); // TODO: make this tuneable
 
     // add the heading traveled since the last execute call to the accum yaw
     // angle modulus is needed for when the gyro crosses from [0, pi] to [-pi, 0]
