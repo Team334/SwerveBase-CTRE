@@ -36,6 +36,7 @@ public class UnitTestingUtil {
     _ntInst = NetworkTableInstance.create();
 
     DriverStationSim.setEnabled(true);
+    DriverStation.silenceJoystickConnectionWarning(true);
     DriverStationSim.notifyNewData();
 
     assert DriverStation.isEnabled();

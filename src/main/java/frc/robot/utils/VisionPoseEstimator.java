@@ -363,7 +363,7 @@ public class VisionPoseEstimator implements AutoCloseable {
   }
 
   @Override
-  public void close() throws Exception {
+  public void close() {
     _camera.close();
     _cameraSim.close();
   }

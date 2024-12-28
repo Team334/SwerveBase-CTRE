@@ -496,6 +496,8 @@ public class Swerve extends SwerveDrivetrain implements Subsystem, SelfChecked {
   public void close() {
     super.close();
 
+    _cameras.forEach(cam -> cam.close());
+
     _simNotifier.close();
   }
 }
