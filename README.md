@@ -7,15 +7,15 @@ A base project for future robots that has CTRE generated swerve drive code and P
 - Swerve drive code using CTRE's swerve code generator.
 - Device logging with SignalLogger and data logging with Epilogue and DogLog.
 - Device Fault Logging as telemetry for at-home testing. The faults are also logged with DogLog for post-match review.
-- Pre-match self check with custom self-check commands.
+- Pre-match self-check with custom self-check commands.
 - A custom `VisionPoseEstimator` class that reads from a Photon Vision camera and updates the swerve pose estimator with filtered and disambiguated AprilTag vision measurements.
+- Automated wheel radius characterization routine (based on 6328's wheel characterization).
+- A custom zshell script that performs camera calibration with mrcal given an input video of a chessboard dance.
 
 # Todo
-- Calibrate cameras.
 - Add choreo (or pathplanner?) support.
 - Add more unit tests.
 - Add proper licenses.
-- 6328 wheel radius characterization.
 
 # How This Will Be Used
 - At the start of the 2025 season this project should be re-imported in the 2025 wpilib release for any additional updates.
