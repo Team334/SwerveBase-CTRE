@@ -25,6 +25,9 @@ public class RobotTest {
 
   @AfterEach
   public void close() throws Exception {
+    DriverStationSim.setFmsAttached(false);
+    DriverStationSim.notifyNewData();
+
     reset(_robot);
   }
 

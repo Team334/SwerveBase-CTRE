@@ -23,9 +23,6 @@ A base project for future robots that has CTRE generated swerve drive code and P
 ![github templates](https://docs.github.com/assets/cb-76823/mw-1440/images/help/repository/use-this-template-button.webp)
 
 # Calibration Process
-- Run `calibration/calibrator.zsh` in zshell in WSL (make sure all packages are installed).
+- Run `calibration/calibrator.zsh` in zshell in WSL in the `calibration` folder (make sure all packages are installed).
 - Analyze calibration as according to the mrcal tour.
-- Convert the `.cameramodel` calibration data format into `.json` using `calibration/mrcal_to_photon.py` in WSL.
-
-## 2025 Latest Beta Known Issues
-- To run sim, do `./gradlew simulateJava` instead of using the WPILib extension (for Epilogue to work).
+- If the calibration was good, load the generated JSON into photon vision.

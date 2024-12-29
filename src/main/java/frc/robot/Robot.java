@@ -28,6 +28,7 @@ import frc.lib.InputStream;
 import frc.robot.Constants.Ports;
 import frc.robot.Constants.SwerveConstants;
 import frc.robot.commands.Autos;
+import frc.robot.commands.WheelRadiusCharacterization;
 import frc.robot.generated.TunerConstants;
 import frc.robot.subsystems.Swerve;
 
@@ -88,6 +89,9 @@ public class Robot extends TimedRobot {
                 _swerve.fullSelfCheck(),
                 runOnce(() -> DataLogManager.log("Robot Self Check Successful!")))
             .withName("Robot Self Check"));
+
+    SmartDashboard.putData(new WheelRadiusCharacterization(_swerve));
+    SmartDashboard.putData(runOnce(FaultLogger::clear).withName("Clear Faults"));
 
     addPeriodic(FaultLogger::update, 1);
   }
