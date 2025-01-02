@@ -4,17 +4,14 @@
 
 package frc.robot.commands;
 
-import static edu.wpi.first.wpilibj2.command.Commands.*;
+import frc.robot.subsystems.Swerve;
 
-import edu.wpi.first.wpilibj2.command.Command;
+public class Autos {
+  private final Swerve _swerve;
 
-public final class Autos {
-  private Autos() {
-    throw new UnsupportedOperationException("This is a utility class!");
+  public Autos(Swerve swerve) {
+    _swerve = swerve;
   }
 
-  /** An auto that doesn't do anything for 15 sec. */
-  public static Command none() {
-    return idle();
-  }
+  // TODO: add a simple path example
 }
