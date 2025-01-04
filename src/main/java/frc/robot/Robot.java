@@ -45,9 +45,11 @@ public class Robot extends TimedRobot {
 
   // subsystems
   @Logged(name = "Swerve")
-  private Swerve _swerve = TunerConstants.createDrivetrain();
+  private final Swerve _swerve = TunerConstants.createDrivetrain();
 
-  private Command _autonomousCommand = Autos.none();
+  private final Autos _autos = new Autos(_swerve);
+
+  private Command _autonomousCommand = none();
 
   private final NetworkTableInstance _ntInst;
 

@@ -4,17 +4,28 @@
 
 package frc.robot.commands;
 
-import static edu.wpi.first.wpilibj2.command.Commands.*;
+import choreo.auto.AutoFactory;
+import choreo.auto.AutoFactory.AutoBindings;
+import frc.robot.subsystems.Swerve;
 
-import edu.wpi.first.wpilibj2.command.Command;
+public class Autos {
+  private final Swerve _swerve;
 
-public final class Autos {
-  private Autos() {
-    throw new UnsupportedOperationException("This is a utility class!");
+  private final AutoFactory _factory;
+
+  public Autos(Swerve swerve) {
+    _swerve = swerve;
+
+    _factory =
+        new AutoFactory(
+            _swerve::getPose,
+            _swerve::resetPose,
+            _swerve::followTrajectory,
+            true,
+            _swerve,
+            new AutoBindings() // TODO
+            );
   }
 
-  /** An auto that doesn't do anything for 15 sec. */
-  public static Command none() {
-    return idle();
-  }
+  // TODO: add a simple path example
 }

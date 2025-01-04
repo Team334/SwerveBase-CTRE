@@ -7,6 +7,7 @@ package frc.robot.subsystems;
 import static edu.wpi.first.units.Units.*;
 import static edu.wpi.first.wpilibj2.command.Commands.*;
 
+import choreo.trajectory.SwerveSample;
 import com.ctre.phoenix6.SignalLogger;
 import com.ctre.phoenix6.Utils;
 import com.ctre.phoenix6.swerve.SwerveDrivetrain;
@@ -68,8 +69,8 @@ public class Swerve extends SwerveDrivetrain implements Subsystem, SelfChecked {
 
   private final SwerveDriveBrake _brakeRequest = new SwerveDriveBrake();
 
-  // auton request
-  private final ApplyRobotSpeeds _robotSpeedsRequest = new ApplyRobotSpeeds();
+  // auton request for choreo
+  private final ApplyFieldSpeeds _fieldSpeedsRequest = new ApplyFieldSpeeds();
 
   // sysid requests
   private final SysIdSwerveTranslation _translationSysIdRequest = new SysIdSwerveTranslation();
@@ -175,7 +176,8 @@ public class Swerve extends SwerveDrivetrain implements Subsystem, SelfChecked {
         .withDeadband(SwerveConstants.translationalDeadband)
         .withRotationalDeadband(SwerveConstants.rotationalDeadband);
 
-    _robotSpeedsRequest.withDriveRequestType(DriveRequestType.Velocity);
+    // closed loop vel always in auto
+    _fieldSpeedsRequest.withDriveRequestType(DriveRequestType.Velocity);
 
     registerTelemetry(
         state -> {
@@ -314,7 +316,7 @@ public class Swerve extends SwerveDrivetrain implements Subsystem, SelfChecked {
   }
 
   /**
-   * Creates a new Command that drives the drive. This is meant for teleop.
+   * Creates a new Command that drives the chassis.
    *
    * @param velX The x velocity in meters per second.
    * @param velY The y velocity in meters per second.
@@ -328,7 +330,8 @@ public class Swerve extends SwerveDrivetrain implements Subsystem, SelfChecked {
   }
 
   /**
-   * Drives the swerve drive. This is meant for teleop.
+   * Drives the swerve drive. Open loop/field oriented behavior is configured with {@link
+   * #_isOpenLoop} and {@link #_isFieldOriented}.
    *
    * @param velX The x velocity in meters per second.
    * @param velY The y velocity in meters per second.
@@ -379,22 +382,21 @@ public class Swerve extends SwerveDrivetrain implements Subsystem, SelfChecked {
   }
 
   /**
-   * Drives the swerve drive. This configuration is robot oriented and closed-loop, specifically
-   * meant for auton.
+   * Sets the chassis state to the given {@link SwerveSample} to aid trajectory following.
    *
-   * @param speeds The robot-relative chassis speeds.
-   * @param wheelForceFeedforwardsX The robot-relative individual module forces x-component in
-   *     Newtons.
-   * @param wheelForceFeedforwardsY The robot-relative individual module forces y-component in
-   *     Newtons.
+   * @param sample The SwerveSample.
    */
-  public void drive(
-      ChassisSpeeds speeds, double[] wheelForceFeedforwardsX, double[] wheelForceFeedforwardsY) {
+  public void followTrajectory(SwerveSample sample) {
+    var desiredSpeeds = sample.getChassisSpeeds();
+
+    // TODO: add control effort from pose PID to the target speeds
+    // var pose = sample.getPose();
+
     setControl(
-        _robotSpeedsRequest
-            .withSpeeds(speeds)
-            .withWheelForceFeedforwardsX(wheelForceFeedforwardsX)
-            .withWheelForceFeedforwardsY(wheelForceFeedforwardsY));
+        _fieldSpeedsRequest
+            .withSpeeds(desiredSpeeds)
+            .withWheelForceFeedforwardsX(sample.moduleForcesX())
+            .withWheelForceFeedforwardsY(sample.moduleForcesY()));
   }
 
   /** Wrapper for getting estimated pose. */
@@ -446,7 +448,6 @@ public class Swerve extends SwerveDrivetrain implements Subsystem, SelfChecked {
 
   @Override
   public void periodic() {
-    // ---- this subsystem's periodic ----
     updateVisionPoseEstimates();
 
     DogLog.log(
