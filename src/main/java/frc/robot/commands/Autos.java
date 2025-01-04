@@ -4,13 +4,27 @@
 
 package frc.robot.commands;
 
+import choreo.auto.AutoFactory;
+import choreo.auto.AutoFactory.AutoBindings;
 import frc.robot.subsystems.Swerve;
 
 public class Autos {
   private final Swerve _swerve;
 
+  private final AutoFactory _factory;
+
   public Autos(Swerve swerve) {
     _swerve = swerve;
+
+    _factory =
+        new AutoFactory(
+            _swerve::getPose,
+            _swerve::resetPose,
+            _swerve::followTrajectory,
+            true,
+            _swerve,
+            new AutoBindings() // TODO
+            );
   }
 
   // TODO: add a simple path example
