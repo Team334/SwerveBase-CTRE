@@ -8,7 +8,7 @@ import static edu.wpi.first.wpilibj2.command.Commands.*;
 
 import choreo.auto.AutoFactory;
 import choreo.auto.AutoFactory.AutoBindings;
-import edu.wpi.first.wpilibj2.command.Command;
+import choreo.auto.AutoRoutine;
 import frc.robot.subsystems.Swerve;
 
 public class Autos {
@@ -30,8 +30,12 @@ public class Autos {
             );
   }
 
-  public Command simpleTrajectory() {
-    return sequence(
-        _factory.resetOdometry("Simple Trajectory"), _factory.trajectoryCmd("Simple Trajectory"));
+  public AutoRoutine simpleTrajectory() {
+    var routine = _factory.newRoutine("Routine");
+    var traj = routine.trajectory("Simple Trajectory");
+
+    routine.active().onTrue(sequence(routine.resetOdometry(traj), traj.cmd()));
+
+    return routine;
   }
 }
