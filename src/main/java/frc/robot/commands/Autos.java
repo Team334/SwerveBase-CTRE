@@ -4,8 +4,11 @@
 
 package frc.robot.commands;
 
+import static edu.wpi.first.wpilibj2.command.Commands.*;
+
 import choreo.auto.AutoFactory;
 import choreo.auto.AutoFactory.AutoBindings;
+import edu.wpi.first.wpilibj2.command.Command;
 import frc.robot.subsystems.Swerve;
 
 public class Autos {
@@ -27,5 +30,8 @@ public class Autos {
             );
   }
 
-  // TODO: add a simple path example
+  public Command simpleTrajectory() {
+    return sequence(
+        _factory.resetOdometry("Simple Trajectory"), _factory.trajectoryCmd("Simple Trajectory"));
+  }
 }

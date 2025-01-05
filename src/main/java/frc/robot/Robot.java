@@ -6,7 +6,9 @@ package frc.robot;
 
 import static edu.wpi.first.units.Units.*;
 import static edu.wpi.first.wpilibj2.command.Commands.*;
+import static edu.wpi.first.wpilibj2.command.button.RobotModeTriggers.*;
 
+import choreo.auto.AutoChooser;
 import com.ctre.phoenix6.SignalLogger;
 import dev.doglog.DogLog;
 import edu.wpi.first.epilogue.Epilogue;
@@ -20,7 +22,6 @@ import edu.wpi.first.wpilibj.DataLogManager;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
-import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import frc.lib.FaultLogger;
@@ -48,8 +49,7 @@ public class Robot extends TimedRobot {
   private final Swerve _swerve = TunerConstants.createDrivetrain();
 
   private final Autos _autos = new Autos(_swerve);
-
-  private Command _autonomousCommand = none();
+  private final AutoChooser _autoChooser = new AutoChooser();
 
   private final NetworkTableInstance _ntInst;
 
@@ -94,6 +94,13 @@ public class Robot extends TimedRobot {
 
     SmartDashboard.putData(new WheelRadiusCharacterization(_swerve));
     SmartDashboard.putData(runOnce(FaultLogger::clear).withName("Clear Faults"));
+
+    // set up autos
+    _autoChooser.addCmd("Simple Trajectory", _autos::simpleTrajectory);
+
+    SmartDashboard.putData("Auto Chooser", _autoChooser);
+
+    autonomous().whileTrue(_autoChooser.selectedCommandScheduler());
 
     addPeriodic(FaultLogger::update, 1);
   }
@@ -149,26 +156,6 @@ public class Robot extends TimedRobot {
       setFileOnly(true);
 
       _fileOnlySet = true;
-    }
-  }
-
-  /** This autonomous runs the autonomous command. */
-  @Override
-  public void autonomousInit() {
-    // schedule the autonomous command (example)
-    if (_autonomousCommand != null) {
-      _autonomousCommand.schedule();
-    }
-  }
-
-  @Override
-  public void teleopInit() {
-    // This makes sure that the autonomous stops running when
-    // teleop starts running. If you want the autonomous to
-    // continue until interrupted by another command, remove
-    // this line or comment it out.
-    if (_autonomousCommand != null) {
-      _autonomousCommand.cancel();
     }
   }
 
