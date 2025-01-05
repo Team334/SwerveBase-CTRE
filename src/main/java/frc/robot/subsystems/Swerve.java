@@ -139,7 +139,7 @@ public class Swerve extends SwerveDrivetrain implements Subsystem, SelfChecked {
   private boolean _isOpenLoop = true;
 
   @Logged(name = "Ignore Vision Estimates")
-  private boolean _ignoreVisionEstimates = false;
+  private boolean _ignoreVisionEstimates = true; // for sim for now
 
   @Logged(name = VisionConstants.blueArducamName)
   private final VisionPoseEstimator _blueArducam =
