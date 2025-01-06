@@ -9,6 +9,7 @@ import static edu.wpi.first.wpilibj2.command.Commands.*;
 import choreo.auto.AutoFactory;
 import choreo.auto.AutoFactory.AutoBindings;
 import choreo.auto.AutoRoutine;
+import dev.doglog.DogLog;
 import choreo.auto.AutoTrajectory;
 import frc.robot.subsystems.Swerve;
 
@@ -27,8 +28,15 @@ public class Autos {
             _swerve::followTrajectory,
             true,
             _swerve,
-            new AutoBindings() // TODO
-            );
+            new AutoBindings(), // TODO
+            (traj, isActive) -> {
+              traj = traj.flipped();
+
+              DogLog.log("Auto/Current Trajectory", traj.getPoses());
+              DogLog.log("Auto/Current Trajectory Name", traj.name());
+              DogLog.log("Auto/Current Trajectory Duration", traj.getTotalTime());
+              DogLog.log("Auto/Current Trajectory Is Active", isActive);
+            });
   }
 
   public AutoRoutine simpleTrajectory() {

@@ -390,7 +390,9 @@ public class Swerve extends SwerveDrivetrain implements Subsystem, SelfChecked {
     var desiredSpeeds = sample.getChassisSpeeds();
 
     // TODO: add control effort from pose PID to the target speeds
-    // var pose = sample.getPose();
+    var pose = sample.getPose();
+
+    DogLog.log("Auto/Current Trajectory Desired Pose", pose);
 
     setControl(
         _fieldSpeedsRequest

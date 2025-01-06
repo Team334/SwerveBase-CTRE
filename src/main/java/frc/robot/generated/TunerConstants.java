@@ -1,6 +1,3 @@
-// Copyright (c) FIRST and other WPILib contributors.
-// Open Source Software; you can modify and/or share it under the terms of
-// the WPILib BSD license file in the root directory of this project.
 package frc.robot.generated;
 
 import static edu.wpi.first.units.Units.*;
@@ -31,8 +28,8 @@ public class TunerConstants {
       new Slot0Configs()
           .withKP(100)
           .withKI(0)
-          .withKD(2.0)
-          .withKS(0.2)
+          .withKD(0.5)
+          .withKS(0.1)
           .withKV(1.59)
           .withKA(0)
           .withStaticFeedforwardSign(StaticFeedforwardSignValue.UseClosedLoopSign);
@@ -86,7 +83,7 @@ public class TunerConstants {
 
   private static final double kDriveGearRatio = 7.363636364;
   private static final double kSteerGearRatio = 12.8;
-  public static final Distance kWheelRadius = Inches.of(2.167);
+  private static final Distance kWheelRadius = Inches.of(2.167);
 
   private static final boolean kInvertLeftSide = false;
   private static final boolean kInvertRightSide = true;
@@ -94,11 +91,11 @@ public class TunerConstants {
   private static final int kPigeonId = 1;
 
   // These are only used for simulation
-  private static final double kSteerInertia = 0.01;
-  private static final double kDriveInertia = 0.01;
+  private static final MomentOfInertia kSteerInertia = KilogramSquareMeters.of(0.01);
+  private static final MomentOfInertia kDriveInertia = KilogramSquareMeters.of(0.01);
   // Simulated voltage necessary to overcome friction
-  private static final Voltage kSteerFrictionVoltage = Volts.of(0.25);
-  private static final Voltage kDriveFrictionVoltage = Volts.of(0.25);
+  private static final Voltage kSteerFrictionVoltage = Volts.of(0.2);
+  private static final Voltage kDriveFrictionVoltage = Volts.of(0.2);
 
   public static final SwerveDrivetrainConstants DrivetrainConstants =
       new SwerveDrivetrainConstants()
@@ -216,10 +213,7 @@ public class TunerConstants {
           kBackRightSteerMotorInverted,
           kBackRightCANcoderInverted);
 
-  /**
-   * Creates a CommandSwerveDrivetrain instance. This should only be called once in your robot
-   * program,.
-   */
+  /** Creates a Swerve instance. This should only be called once in your robot program,. */
   public static Swerve createDrivetrain() {
     return new Swerve(DrivetrainConstants, FrontLeft, FrontRight, BackLeft, BackRight);
   }
