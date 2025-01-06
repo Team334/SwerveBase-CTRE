@@ -48,7 +48,7 @@ public class WheelRadiusCharacterization extends Command {
 
     for (int i = 0; i < _swerve.getModules().length; i++) {
       // radians = (meters / radius)
-      distances[i] = positions[i].distanceMeters / TunerConstants.kWheelRadius.in(Meters);
+      distances[i] = positions[i].distanceMeters / TunerConstants.FrontLeft.WheelRadius;
     }
 
     return distances;
