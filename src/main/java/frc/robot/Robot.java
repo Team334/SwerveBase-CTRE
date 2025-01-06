@@ -97,6 +97,7 @@ public class Robot extends TimedRobot {
 
     // set up autos
     _autoChooser.addRoutine("Simple Trajectory", _autos::simpleTrajectory);
+    _autoChooser.addRoutine("Branching Auto", _autos::branchingAuto);
 
     SmartDashboard.putData("Auto Chooser", _autoChooser);
 
