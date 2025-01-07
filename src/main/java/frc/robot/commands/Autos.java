@@ -10,7 +10,6 @@ import choreo.auto.AutoFactory;
 import choreo.auto.AutoFactory.AutoBindings;
 import choreo.auto.AutoRoutine;
 import dev.doglog.DogLog;
-import choreo.auto.AutoTrajectory;
 import frc.robot.subsystems.Swerve;
 
 public class Autos {
@@ -48,21 +47,22 @@ public class Autos {
     return routine;
   }
 
-  public AutoRoutine branchingAuto(){
-    final boolean _branch = true; // Change this if you want the auton to branch (Maybe simulate some trigger later)
+  public AutoRoutine branchingAuto() {
+    final boolean branch =
+        true; // Change this if you want the auton to branch (Maybe simulate some trigger later)
 
-    AutoRoutine routine = _factory.newRoutine("branchingAuto");
+    var routine = _factory.newRoutine("branchingAuto");
 
     // Loading traj
-    AutoTrajectory startToM1 = routine.trajectory("startToM1");
-    AutoTrajectory M1toScore = routine.trajectory("M1toScore");
-    AutoTrajectory M1toM2 = routine.trajectory("M1toM2");
-    AutoTrajectory M2toScore = routine.trajectory("M2toScore");
+    var startToM1 = routine.trajectory("startToM1");
+    var M1toScore = routine.trajectory("M1toScore");
+    var M1toM2 = routine.trajectory("M1toM2");
+    var M2toScore = routine.trajectory("M2toScore");
 
     routine.active().onTrue(sequence(routine.resetOdometry(startToM1), startToM1.cmd()));
 
-    startToM1.done().and(() -> _branch).onTrue(M1toM2.cmd());
-    startToM1.done().and(() -> !_branch).onTrue(M1toScore.cmd());
+    startToM1.done().and(() -> branch).onTrue(M1toM2.cmd());
+    startToM1.done().and(() -> !branch).onTrue(M1toScore.cmd());
 
     M1toM2.done().onTrue(M2toScore.cmd());
 
