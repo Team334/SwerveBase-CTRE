@@ -1,5 +1,6 @@
 package frc.robot.utils;
 
+import choreo.trajectory.SwerveSample;
 import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.geometry.Pose2d;
@@ -46,5 +47,20 @@ public class HolonomicController {
 
   public ChassisSpeeds calculate(State current, State goal, double t) {
     return new ChassisSpeeds();
+  }
+
+  /**
+   * Calculates the next speeds for the robot using a sample from the trajectory.
+   * @param current The current state of the robot. 
+   * @param sample A sample in a trajectory.
+   */
+  public ChassisSpeeds calculate(State current, SwerveSample sample){
+    ChassisSpeeds targetSpeeds = sample.getChassisSpeeds();
+
+    targetSpeeds.vxMetersPerSecond += _xController.calculate(current.pose().getX(), sample.x);
+    targetSpeeds.vyMetersPerSecond += _yController.calculate(current.pose().getY(), sample.y);
+    targetSpeeds.omegaRadiansPerSecond += _headingController.calculate(current.pose().getRotation().getRadians(), sample.heading);
+
+    return targetSpeeds;
   }
 }
