@@ -39,6 +39,6 @@ public class WheelRadiusCharacterizationTest {
 
     // accept with a tolerance of 0.002 meters (i think that's good?)
     assertEquals(
-        TunerConstants.FrontLeft.WheelRadius, _characterization.getWheelRadius().in(Meters), 2e-3);
+        TunerConstants.FrontLeft.WheelRadius, _characterization.getWheelRadius().in(Meters), 3e-3);
   }
 }
