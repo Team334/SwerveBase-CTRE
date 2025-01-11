@@ -1,33 +1,37 @@
 package frc.robot.utils;
 
+import edu.wpi.first.math.VecBuilder;
+import edu.wpi.first.math.Vector;
 import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.controller.ProfiledPIDController;
 import edu.wpi.first.math.geometry.Pose2d;
+import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Transform2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
+import edu.wpi.first.math.numbers.N2;
 import edu.wpi.first.math.trajectory.TrapezoidProfile.Constraints;
 
 public class HolonomicController {
-  private final ProfiledPIDController _xProfiled =
-      new ProfiledPIDController(0, 0, 0, new Constraints(2, 0.5));
-  private final ProfiledPIDController _yProfiled =
-      new ProfiledPIDController(0, 0, 0, new Constraints(2, 0.5));
+  private final ProfiledPIDController _translationProfiled =
+      new ProfiledPIDController(0, 0, 0, null);
   private final ProfiledPIDController _headingProfiled =
       new ProfiledPIDController(0, 0, 0, new Constraints(2, 1));
 
-  private final PIDController _xController = new PIDController(0, 0, 0);
-  private final PIDController _yController = new PIDController(0, 0, 0);
+  private final PIDController _translationController = new PIDController(0, 0, 0);
   private final PIDController _headingController = new PIDController(0, 0, 0);
 
-  /** Set the error tolerance for all controllers. */
-  public void setTolerance(Transform2d tolerance) {
-    _xProfiled.setTolerance(tolerance.getX());
-    _yProfiled.setTolerance(tolerance.getY());
-    _headingProfiled.setTolerance(tolerance.getRotation().getRadians());
+  /**
+   * Set the error tolerance for all controllers.
+   *
+   * @param translationTolerance Linear translation tolerance in meters.
+   * @param headingTolerance Heading tolerance.
+   */
+  public void setTolerance(double translationTolerance, Rotation2d headingTolerance) {
+    _translationProfiled.setTolerance(translationTolerance);
+    _headingProfiled.setTolerance(headingTolerance.getRadians());
 
-    _xController.setTolerance(tolerance.getX());
-    _yController.setTolerance(tolerance.getY());
-    _headingController.setTolerance(tolerance.getRotation().getRadians());
+    _translationController.setTolerance(translationTolerance);
+    _headingController.setTolerance(headingTolerance.getRadians());
   }
 
   /**
@@ -35,7 +39,7 @@ public class HolonomicController {
    * Pose2d)} call) is within the set tolerance or not.
    */
   public boolean atGoal() {
-    return _xProfiled.atGoal() && _yProfiled.atGoal() && _headingProfiled.atGoal();
+    return _translationProfiled.atGoal() && _headingProfiled.atGoal();
   }
 
   /**
@@ -43,15 +47,12 @@ public class HolonomicController {
    * #calculate(ChassisSpeeds, Pose2d, Pose2d)} call) is within the tolerance or not.
    */
   public boolean atSetpoint() {
-    return _xController.atSetpoint()
-        && _yController.atSetpoint()
-        && _headingController.atSetpoint();
+    return _translationController.atSetpoint() && _headingController.atSetpoint();
   }
 
   /** Resets the motion profile at the current drive pose and chassis speeds. */
   public void reset(Pose2d currentPose, ChassisSpeeds currentSpeeds) {
-    _xProfiled.reset(currentPose.getX(), currentSpeeds.vxMetersPerSecond);
-    _yProfiled.reset(currentPose.getY(), currentSpeeds.vyMetersPerSecond);
+    // TODO translation
     _headingProfiled.reset(
         currentPose.getRotation().getRadians(), currentSpeeds.omegaRadiansPerSecond);
   }
@@ -66,11 +67,7 @@ public class HolonomicController {
    *     next timestep.
    */
   public ChassisSpeeds calculate(Pose2d currentPose, Pose2d goalPose) {
-    return new ChassisSpeeds(
-        _xProfiled.calculate(currentPose.getX(), goalPose.getX()),
-        _yProfiled.calculate(currentPose.getY(), goalPose.getY()),
-        _headingProfiled.calculate(
-            currentPose.getRotation().getRadians(), goalPose.getRotation().getRadians()));
+    return new ChassisSpeeds();
   }
 
   /**
@@ -84,10 +81,21 @@ public class HolonomicController {
    */
   public ChassisSpeeds calculate(
       ChassisSpeeds currentSpeeds, Pose2d desiredPose, Pose2d currentPose) {
+    Transform2d transform = desiredPose.minus(currentPose);
+
+    // vector where tail is at current pose and head is at desired pose
+    Vector<N2> difference = VecBuilder.fill(transform.getX(), transform.getY());
+
+    // find linear speed scalar returned by PID and set the length of the difference vector to the
+    // scalar
+    // this is so velocity is pointing in the right direction
+    Vector<N2> vel =
+        difference.unit().times(_translationController.calculate(difference.norm(), 0));
+
     return currentSpeeds.plus(
         new ChassisSpeeds(
-            _xController.calculate(currentPose.getX(), desiredPose.getX()),
-            _yController.calculate(currentPose.getY(), desiredPose.getY()),
+            vel.get(0),
+            vel.get(1),
             _headingController.calculate(
                 currentPose.getRotation().getRadians(), desiredPose.getRotation().getRadians())));
   }
