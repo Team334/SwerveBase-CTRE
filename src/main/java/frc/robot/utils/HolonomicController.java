@@ -1,85 +1,94 @@
 package frc.robot.utils;
 
-import edu.wpi.first.math.MathUtil;
-import edu.wpi.first.math.VecBuilder;
-import edu.wpi.first.math.Vector;
 import edu.wpi.first.math.controller.PIDController;
+import edu.wpi.first.math.controller.ProfiledPIDController;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Transform2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
-import edu.wpi.first.math.numbers.N2;
-import edu.wpi.first.math.trajectory.TrapezoidProfile;
+import edu.wpi.first.math.trajectory.TrapezoidProfile.Constraints;
 
 public class HolonomicController {
-  // TODO: make a method for profiled control
-  private final TrapezoidProfile _translationProfile = new TrapezoidProfile(null);
-  private final TrapezoidProfile _headingProfile = new TrapezoidProfile(null);
+  private final ProfiledPIDController _xProfiled =
+      new ProfiledPIDController(0, 0, 0, new Constraints(2, 0.5));
+  private final ProfiledPIDController _yProfiled =
+      new ProfiledPIDController(0, 0, 0, new Constraints(2, 0.5));
+  private final ProfiledPIDController _headingProfiled =
+      new ProfiledPIDController(0, 0, 0, new Constraints(2, 1));
 
-  private final PIDController _translationController = new PIDController(0, 0, 0);
+  private final PIDController _xController = new PIDController(0, 0, 0);
+  private final PIDController _yController = new PIDController(0, 0, 0);
   private final PIDController _headingController = new PIDController(0, 0, 0);
 
-  private Transform2d _error = new Transform2d();
-  private Pose2d _setpoint = new Pose2d();
-
-  private Transform2d _tolerance = new Transform2d();
-
+  /** Set the error tolerance for all controllers. */
   public void setTolerance(Transform2d tolerance) {
-    _tolerance = tolerance;
-  }
+    _xProfiled.setTolerance(tolerance.getX());
+    _yProfiled.setTolerance(tolerance.getY());
+    _headingProfiled.setTolerance(tolerance.getRotation().getRadians());
 
-  public Transform2d getTolerance() {
-    return _tolerance;
-  }
-
-  public void setSetpoint(Pose2d setpoint) {
-    _setpoint = setpoint;
-  }
-
-  public Pose2d getSetpoint() {
-    return _setpoint;
+    _xController.setTolerance(tolerance.getX());
+    _yController.setTolerance(tolerance.getY());
+    _headingController.setTolerance(tolerance.getRotation().getRadians());
   }
 
   /**
-   * Whether the error of the holonomic controller (since the last {@link #calculate call}) is
-   * within the tolerance or not.
+   * Whether the error between robot pose and goal (since the last {@link #calculate(Pose2d,
+   * Pose2d)} call) is within the set tolerance or not.
    */
-  public boolean atReference() {
-    return MathUtil.isNear(0, _error.getX(), _tolerance.getX())
-        && MathUtil.isNear(0, _error.getY(), _tolerance.getY())
-        && MathUtil.isNear(
-            0, _error.getRotation().getRadians(), _tolerance.getRotation().getRadians());
+  public boolean atGoal() {
+    return _xProfiled.atGoal() && _yProfiled.atGoal() && _headingProfiled.atGoal();
+  }
+
+  /**
+   * Whether the error between robot pose and setpoint (since the last {@link
+   * #calculate(ChassisSpeeds, Pose2d, Pose2d)} call) is within the tolerance or not.
+   */
+  public boolean atSetpoint() {
+    return _xController.atSetpoint()
+        && _yController.atSetpoint()
+        && _headingController.atSetpoint();
+  }
+
+  /** Resets the motion profile at the current drive pose and chassis speeds. */
+  public void reset(Pose2d currentPose, ChassisSpeeds currentSpeeds) {
+    _xProfiled.reset(currentPose.getX(), currentSpeeds.vxMetersPerSecond);
+    _yProfiled.reset(currentPose.getY(), currentSpeeds.vyMetersPerSecond);
+    _headingProfiled.reset(
+        currentPose.getRotation().getRadians(), currentSpeeds.omegaRadiansPerSecond);
+  }
+
+  /**
+   * Samples the motion profiles at the next timestep. The motion profiles end at the desired goal
+   * pose at a chassis speeds of 0.
+   *
+   * @param currentPose The current pose of the chassis necessary for PID.
+   * @param goalPose The desired goal pose (end of motion profiles) of the chassis.
+   * @return Chassis speeds (including PID correction) sampled from the trapezoid profile at the
+   *     next timestep.
+   */
+  public ChassisSpeeds calculate(Pose2d currentPose, Pose2d goalPose) {
+    return new ChassisSpeeds(
+        _xProfiled.calculate(currentPose.getX(), goalPose.getX()),
+        _yProfiled.calculate(currentPose.getY(), goalPose.getY()),
+        _headingProfiled.calculate(
+            currentPose.getRotation().getRadians(), goalPose.getRotation().getRadians()));
   }
 
   /**
    * Modifies some reference chassis speeds the drive is currently traveling at to bring the drive
    * closer to a desired pose.
    *
-   * @param referenceSpeeds The field-relative reference speeds the drive is traveling at.
+   * @param currentSpeeds The field-relative reference speeds the drive is traveling at.
    * @param desiredPose The desired pose.
-   * @param referencePose The current reference pose of the drive.
-   * @return Modified reference speeds.
+   * @param currentPose The current pose of the drive.
+   * @return New modified speeds.
    */
   public ChassisSpeeds calculate(
-      ChassisSpeeds referenceSpeeds, Pose2d desiredPose, Pose2d referencePose) {
-    // error is the transformation between the desired and reference pose
-    _error = desiredPose.minus(referencePose);
-
-    // vector where tail is at reference pose and head is at desired pose
-    Vector<N2> difference = VecBuilder.fill(_error.getX(), _error.getY());
-
-    // feed distance scalar into pid controller, and then construct a new velocity vector of length
-    // of pid output
-    // and direction of difference vector
-    Vector<N2> vel =
-        difference.unit().times(_translationController.calculate(difference.norm(), 0));
-
-    referenceSpeeds.vxMetersPerSecond += vel.get(0);
-    referenceSpeeds.vyMetersPerSecond += vel.get(1);
-
-    referenceSpeeds.omegaRadiansPerSecond +=
-        _headingController.calculate(
-            referencePose.getRotation().getRadians(), desiredPose.getRotation().getRadians());
-
-    return referenceSpeeds;
+      ChassisSpeeds currentSpeeds, Pose2d desiredPose, Pose2d currentPose) {
+    return currentSpeeds.plus(
+        new ChassisSpeeds(
+            _xController.calculate(currentPose.getX(), desiredPose.getX()),
+            _yController.calculate(currentPose.getY(), desiredPose.getY()),
+            _headingController.calculate(
+                currentPose.getRotation().getRadians(), desiredPose.getRotation().getRadians())));
   }
 }

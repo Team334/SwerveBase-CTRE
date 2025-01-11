@@ -23,6 +23,7 @@ import edu.wpi.first.math.VecBuilder;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Pose3d;
 import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.math.geometry.Transform2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.kinematics.SwerveDriveKinematics;
 import edu.wpi.first.math.kinematics.SwerveModuleState;
@@ -43,6 +44,7 @@ import frc.robot.Constants.FieldConstants;
 import frc.robot.Constants.SwerveConstants;
 import frc.robot.Constants.VisionConstants;
 import frc.robot.Robot;
+import frc.robot.utils.HolonomicController;
 import frc.robot.utils.SysId;
 import frc.robot.utils.VisionPoseEstimator;
 import frc.robot.utils.VisionPoseEstimator.VisionPoseEstimate;
@@ -141,6 +143,8 @@ public class Swerve extends SwerveDrivetrain implements Subsystem, SelfChecked {
   @Logged(name = "Ignore Vision Estimates")
   private boolean _ignoreVisionEstimates = true; // for sim for now
 
+  private HolonomicController _poseController = new HolonomicController();
+
   @Logged(name = VisionConstants.blueArducamName)
   private final VisionPoseEstimator _blueArducam =
       VisionPoseEstimator.buildFromConstants(VisionConstants.blueArducam);
@@ -194,6 +198,8 @@ public class Swerve extends SwerveDrivetrain implements Subsystem, SelfChecked {
           DogLog.log("Swerve/Odometry Success %", state.SuccessfulDaqs / totalDaqs * 100);
           DogLog.log("Swerve/Odometry Period", state.OdometryPeriod);
         });
+
+    _poseController.setTolerance(new Transform2d(0.1, 0.1, Rotation2d.fromDegrees(30)));
 
     // display all sysid routines
     SysId.displayRoutine("Swerve Translation", _sysIdRoutineTranslation);
@@ -388,11 +394,11 @@ public class Swerve extends SwerveDrivetrain implements Subsystem, SelfChecked {
    */
   public void followTrajectory(SwerveSample sample) {
     var desiredSpeeds = sample.getChassisSpeeds();
+    var desiredPose = sample.getPose();
 
-    // TODO: add control effort from pose PID to the target speeds
-    var pose = sample.getPose();
+    desiredSpeeds = _poseController.calculate(desiredSpeeds, desiredPose, getPose());
 
-    DogLog.log("Auto/Current Trajectory Desired Pose", pose);
+    DogLog.log("Auto/Current Trajectory Desired Pose", desiredPose);
 
     setControl(
         _fieldSpeedsRequest
