@@ -51,8 +51,12 @@ public class HolonomicController {
   }
 
   /** Resets the motion profile at the current drive pose and chassis speeds. */
-  public void reset(Pose2d currentPose, ChassisSpeeds currentSpeeds) {
-    // TODO translation
+  public void reset(Pose2d currentPose, Pose2d desiredPose, ChassisSpeeds currentSpeeds) {
+    _translationProfiled.reset(
+        currentPose.getTranslation().getDistance(desiredPose.getTranslation())
+        // TODO: how to reset speed?
+        );
+
     _headingProfiled.reset(
         currentPose.getRotation().getRadians(), currentSpeeds.omegaRadiansPerSecond);
   }
@@ -67,7 +71,20 @@ public class HolonomicController {
    *     next timestep.
    */
   public ChassisSpeeds calculate(Pose2d currentPose, Pose2d goalPose) {
-    return new ChassisSpeeds();
+    Transform2d transform = currentPose.minus(goalPose);
+
+    // vector where tail is at goal pose and head is at current pose
+    Vector<N2> difference = VecBuilder.fill(transform.getX(), transform.getY());
+
+    double velScalar = _translationProfiled.calculate(difference.norm(), 0);
+
+    Vector<N2> vel = difference.unit().times(velScalar);
+
+    return new ChassisSpeeds(
+        vel.get(0),
+        vel.get(1),
+        _headingController.calculate(
+            currentPose.getRotation().getRadians(), goalPose.getRotation().getRadians()));
   }
 
   /**
