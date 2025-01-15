@@ -198,7 +198,7 @@ public class Swerve extends SwerveDrivetrain implements Subsystem, SelfChecked {
           DogLog.log("Swerve/Odometry Period", state.OdometryPeriod);
         });
 
-    _poseController.setTolerance(0.2, Rotation2d.fromDegrees(30));
+    _poseController.setTolerance(Meters.of(0.1), Rotation2d.fromDegrees(30));
 
     // display all sysid routines
     SysId.displayRoutine("Swerve Translation", _sysIdRoutineTranslation);
@@ -404,6 +404,24 @@ public class Swerve extends SwerveDrivetrain implements Subsystem, SelfChecked {
             .withSpeeds(desiredSpeeds)
             .withWheelForceFeedforwardsX(sample.moduleForcesX())
             .withWheelForceFeedforwardsY(sample.moduleForcesY()));
+  }
+
+  public Command driveTo(Pose2d goalPose) {
+    return run(() -> {
+          ChassisSpeeds speeds = _poseController.calculate(getPose(), goalPose);
+
+          DogLog.log("FART", speeds);
+
+          setControl(_fieldSpeedsRequest.withSpeeds(speeds));
+        })
+        .beforeStarting(
+            () ->
+                _poseController.reset(
+                    getPose(),
+                    goalPose,
+                    ChassisSpeeds.fromRobotRelativeSpeeds(getChassisSpeeds(), getHeading())))
+        .until(_poseController::atGoal)
+        .withName("Drive To");
   }
 
   /** Wrapper for getting estimated pose. */

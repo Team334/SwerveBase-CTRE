@@ -1,5 +1,8 @@
 package frc.robot.utils;
 
+import static edu.wpi.first.units.Units.Meters;
+
+import dev.doglog.DogLog;
 import edu.wpi.first.math.VecBuilder;
 import edu.wpi.first.math.Vector;
 import edu.wpi.first.math.controller.PIDController;
@@ -10,10 +13,11 @@ import edu.wpi.first.math.geometry.Transform2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.numbers.N2;
 import edu.wpi.first.math.trajectory.TrapezoidProfile.Constraints;
+import edu.wpi.first.units.measure.Distance;
 
 public class HolonomicController {
   private final ProfiledPIDController _translationProfiled =
-      new ProfiledPIDController(0, 0, 0, null);
+      new ProfiledPIDController(0, 0, 0, new Constraints(10, 2));
   private final ProfiledPIDController _headingProfiled =
       new ProfiledPIDController(0, 0, 0, new Constraints(2, 1));
 
@@ -26,11 +30,11 @@ public class HolonomicController {
    * @param translationTolerance Linear translation tolerance in meters.
    * @param headingTolerance Heading tolerance.
    */
-  public void setTolerance(double translationTolerance, Rotation2d headingTolerance) {
-    _translationProfiled.setTolerance(translationTolerance);
+  public void setTolerance(Distance translationTolerance, Rotation2d headingTolerance) {
+    _translationProfiled.setTolerance(translationTolerance.in(Meters));
     _headingProfiled.setTolerance(headingTolerance.getRadians());
 
-    _translationController.setTolerance(translationTolerance);
+    _translationController.setTolerance(translationTolerance.in(Meters));
     _headingController.setTolerance(headingTolerance.getRadians());
   }
 
@@ -50,12 +54,23 @@ public class HolonomicController {
     return _translationController.atSetpoint() && _headingController.atSetpoint();
   }
 
-  /** Resets the motion profile at the current drive pose and chassis speeds. */
-  public void reset(Pose2d currentPose, Pose2d desiredPose, ChassisSpeeds currentSpeeds) {
+  /** Resets the motion profile at the current drive pose and field-relative chassis speeds. */
+  public void reset(Pose2d currentPose, Pose2d goalPose, ChassisSpeeds currentSpeeds) {
+    Transform2d transform = currentPose.minus(goalPose);
+
+    // vector where tail is at goal pose and head is at current pose
+    Vector<N2> difference = VecBuilder.fill(transform.getX(), transform.getY());
+
+    System.out.println(
+        difference.dot(
+                VecBuilder.fill(currentSpeeds.vxMetersPerSecond, currentSpeeds.vyMetersPerSecond))
+            / difference.norm());
+
     _translationProfiled.reset(
-        currentPose.getTranslation().getDistance(desiredPose.getTranslation())
-        // TODO: how to reset speed?
-        );
+        difference.norm(),
+        difference.dot(
+                VecBuilder.fill(currentSpeeds.vxMetersPerSecond, currentSpeeds.vyMetersPerSecond))
+            / difference.norm());
 
     _headingProfiled.reset(
         currentPose.getRotation().getRadians(), currentSpeeds.omegaRadiansPerSecond);
@@ -76,9 +91,18 @@ public class HolonomicController {
     // vector where tail is at goal pose and head is at current pose
     Vector<N2> difference = VecBuilder.fill(transform.getX(), transform.getY());
 
-    double velScalar = _translationProfiled.calculate(difference.norm(), 0);
+    DogLog.log("FARTS", difference.norm());
 
-    Vector<N2> vel = difference.unit().times(velScalar);
+    double velMag = _translationProfiled.calculate(difference.norm(), 0);
+
+    DogLog.log("PISS", velMag);
+
+    Vector<N2> vel = difference.unit().times(_translationProfiled.getSetpoint().velocity);
+
+    DogLog.log("Swerve/Goal Pose Distance", difference.norm());
+    DogLog.log("Swerve/Goal Pose Distance Velocity", velMag);
+
+    DogLog.log("Swerve/Goal Pose", goalPose);
 
     return new ChassisSpeeds(
         vel.get(0),
