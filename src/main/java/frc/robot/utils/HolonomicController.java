@@ -1,6 +1,6 @@
 package frc.robot.utils;
 
-import static edu.wpi.first.units.Units.Meters;
+import static edu.wpi.first.units.Units.*;
 
 import dev.doglog.DogLog;
 import edu.wpi.first.math.VecBuilder;
@@ -9,20 +9,38 @@ import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.controller.ProfiledPIDController;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
-import edu.wpi.first.math.geometry.Transform2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.numbers.N2;
 import edu.wpi.first.math.trajectory.TrapezoidProfile.Constraints;
 import edu.wpi.first.units.measure.Distance;
+import frc.robot.Constants.SwerveConstants;
 
 public class HolonomicController {
   private final ProfiledPIDController _translationProfiled =
-      new ProfiledPIDController(0, 0, 0, new Constraints(10, 2));
+      new ProfiledPIDController(
+          0,
+          0,
+          0,
+          new Constraints(
+              SwerveConstants.maxTranslationalSpeed.in(MetersPerSecond),
+              SwerveConstants.maxTranslationalAcceleration.in(MetersPerSecondPerSecond)));
+
   private final ProfiledPIDController _headingProfiled =
-      new ProfiledPIDController(0, 0, 0, new Constraints(2, 1));
+      new ProfiledPIDController(
+          0,
+          0,
+          0,
+          new Constraints(
+              SwerveConstants.maxAngularSpeed.in(RadiansPerSecond),
+              SwerveConstants.maxAngularAcceleration.in(RadiansPerSecondPerSecond)));
 
   private final PIDController _translationController = new PIDController(0, 0, 0);
   private final PIDController _headingController = new PIDController(0, 0, 0);
+
+  public HolonomicController() {
+    _headingProfiled.enableContinuousInput(-Math.PI, Math.PI);
+    _headingController.enableContinuousInput(-Math.PI, Math.PI);
+  }
 
   /**
    * Set the error tolerance for all controllers.
@@ -56,15 +74,9 @@ public class HolonomicController {
 
   /** Resets the motion profile at the current drive pose and field-relative chassis speeds. */
   public void reset(Pose2d currentPose, Pose2d goalPose, ChassisSpeeds currentSpeeds) {
-    Transform2d transform = currentPose.minus(goalPose);
-
     // vector where tail is at goal pose and head is at current pose
-    Vector<N2> difference = VecBuilder.fill(transform.getX(), transform.getY());
-
-    System.out.println(
-        difference.dot(
-                VecBuilder.fill(currentSpeeds.vxMetersPerSecond, currentSpeeds.vyMetersPerSecond))
-            / difference.norm());
+    Vector<N2> difference =
+        VecBuilder.fill(currentPose.getX() - goalPose.getX(), currentPose.getY() - goalPose.getY());
 
     _translationProfiled.reset(
         difference.norm(),
@@ -77,38 +89,36 @@ public class HolonomicController {
   }
 
   /**
-   * Samples the motion profiles at the next timestep. The motion profiles end at the desired goal
+   * Samples the motion profiles at the next timestep. The motion profile ends at the desired goal
    * pose at a chassis speeds of 0.
    *
    * @param currentPose The current pose of the chassis necessary for PID.
-   * @param goalPose The desired goal pose (end of motion profiles) of the chassis.
+   * @param goalPose The desired goal pose (end of motion profile) of the chassis.
    * @return Chassis speeds (including PID correction) sampled from the trapezoid profile at the
    *     next timestep.
    */
   public ChassisSpeeds calculate(Pose2d currentPose, Pose2d goalPose) {
-    Transform2d transform = currentPose.minus(goalPose);
-
     // vector where tail is at goal pose and head is at current pose
-    Vector<N2> difference = VecBuilder.fill(transform.getX(), transform.getY());
+    Vector<N2> difference =
+        VecBuilder.fill(currentPose.getX() - goalPose.getX(), currentPose.getY() - goalPose.getY());
 
-    DogLog.log("FARTS", difference.norm());
-
+    // sample the next timestep in the profile
     double velMag = _translationProfiled.calculate(difference.norm(), 0);
 
-    DogLog.log("PISS", velMag);
-
+    // get velocity from profile and velocity from pid
     Vector<N2> vel = difference.unit().times(_translationProfiled.getSetpoint().velocity);
+    Vector<N2> pidVel = difference.unit().times(velMag);
 
-    DogLog.log("Swerve/Goal Pose Distance", difference.norm());
-    DogLog.log("Swerve/Goal Pose Distance Velocity", velMag);
+    DogLog.log("Auto/Drive To Goal Pose", goalPose);
 
-    DogLog.log("Swerve/Goal Pose", goalPose);
+    double pidOmega =
+        _headingProfiled.calculate(
+            currentPose.getRotation().getRadians(), goalPose.getRotation().getRadians());
 
     return new ChassisSpeeds(
-        vel.get(0),
-        vel.get(1),
-        _headingController.calculate(
-            currentPose.getRotation().getRadians(), goalPose.getRotation().getRadians()));
+        vel.get(0) + pidVel.get(0),
+        vel.get(1) + pidVel.get(1),
+        _headingProfiled.getSetpoint().velocity + pidOmega);
   }
 
   /**
@@ -122,10 +132,10 @@ public class HolonomicController {
    */
   public ChassisSpeeds calculate(
       ChassisSpeeds currentSpeeds, Pose2d desiredPose, Pose2d currentPose) {
-    Transform2d transform = desiredPose.minus(currentPose);
-
     // vector where tail is at current pose and head is at desired pose
-    Vector<N2> difference = VecBuilder.fill(transform.getX(), transform.getY());
+    Vector<N2> difference =
+        VecBuilder.fill(
+            desiredPose.getX() - currentPose.getX(), desiredPose.getY() - currentPose.getY());
 
     // find linear speed scalar returned by PID and set the length of the difference vector to the
     // scalar

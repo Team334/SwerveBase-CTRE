@@ -11,9 +11,11 @@ import edu.wpi.first.apriltag.AprilTagFields;
 import edu.wpi.first.math.geometry.Rotation3d;
 import edu.wpi.first.math.geometry.Transform3d;
 import edu.wpi.first.math.geometry.Translation3d;
+import edu.wpi.first.units.measure.AngularAcceleration;
 import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.units.measure.Distance;
 import edu.wpi.first.units.measure.Frequency;
+import edu.wpi.first.units.measure.LinearAcceleration;
 import edu.wpi.first.units.measure.LinearVelocity;
 import frc.robot.generated.TunerConstants;
 import frc.robot.utils.VisionPoseEstimator.VisionPoseEstimatorConstants;
@@ -67,8 +69,14 @@ public final class Constants {
                 Math.pow(TunerConstants.FrontLeft.LocationX, 2)
                     + Math.pow(TunerConstants.FrontLeft.LocationY, 2)));
 
-    public static final LinearVelocity maxTranslationalSpeed = TunerConstants.kSpeedAt12Volts;
+    public static final LinearVelocity maxTranslationalSpeed = MetersPerSecond.of(3.632);
     public static final AngularVelocity maxAngularSpeed = RadiansPerSecond.of(Math.PI);
+
+    // respecting wheel COF and max motor torque (this can be obtained from choreo probably)
+    public static final LinearAcceleration maxTranslationalAcceleration =
+        MetersPerSecondPerSecond.of(14.715);
+    public static final AngularAcceleration maxAngularAcceleration =
+        RadiansPerSecondPerSecond.of(Math.PI * 3);
 
     public static final LinearVelocity translationalDeadband = maxTranslationalSpeed.times(0.1);
     public static final AngularVelocity rotationalDeadband = maxAngularSpeed.times(0.1);
