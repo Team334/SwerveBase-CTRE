@@ -10,7 +10,8 @@ import static edu.wpi.first.wpilibj2.command.Commands.*;
 import choreo.trajectory.SwerveSample;
 import com.ctre.phoenix6.SignalLogger;
 import com.ctre.phoenix6.Utils;
-import com.ctre.phoenix6.swerve.SwerveDrivetrain;
+import com.ctre.phoenix6.hardware.CANcoder;
+import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.swerve.SwerveDrivetrainConstants;
 import com.ctre.phoenix6.swerve.SwerveModule;
 import com.ctre.phoenix6.swerve.SwerveModule.DriveRequestType;
@@ -43,6 +44,7 @@ import frc.robot.Constants.FieldConstants;
 import frc.robot.Constants.SwerveConstants;
 import frc.robot.Constants.VisionConstants;
 import frc.robot.Robot;
+import frc.robot.generated.TunerConstants.TunerSwerveDrivetrain;
 import frc.robot.utils.HolonomicController;
 import frc.robot.utils.SysId;
 import frc.robot.utils.VisionPoseEstimator;
@@ -54,7 +56,7 @@ import java.util.Set;
 import org.photonvision.simulation.VisionSystemSim;
 
 @Logged(strategy = Strategy.OPT_IN)
-public class Swerve extends SwerveDrivetrain implements Subsystem, SelfChecked {
+public class Swerve extends TunerSwerveDrivetrain implements Subsystem, SelfChecked {
   // faults and the table containing them
   private Set<Fault> _faults = new HashSet<Fault>();
   private FaultsTable _faultsTable =
@@ -168,7 +170,8 @@ public class Swerve extends SwerveDrivetrain implements Subsystem, SelfChecked {
    *     (location, device ids, etc).
    */
   public Swerve(
-      SwerveDrivetrainConstants drivetrainConstants, SwerveModuleConstants... moduleConstants) {
+      SwerveDrivetrainConstants drivetrainConstants,
+      SwerveModuleConstants<?, ?, ?>... moduleConstants) {
     super(drivetrainConstants, SwerveConstants.odometryFrequency.in(Hertz), moduleConstants);
 
     _robotCentricRequest
@@ -274,15 +277,14 @@ public class Swerve extends SwerveDrivetrain implements Subsystem, SelfChecked {
     Command selfCheck =
         sequence(runOnce(this::clearFaults), selfCheck().until(this::hasError))
             .withName(getName() + " Self Check");
-
     return selfCheck;
   }
 
   private void registerFallibles() {
-    for (SwerveModule module : getModules()) {
+    for (SwerveModule<TalonFX, TalonFX, CANcoder> module : getModules()) {
       FaultLogger.register(module.getDriveMotor());
       FaultLogger.register(module.getSteerMotor());
-      FaultLogger.register(module.getCANcoder());
+      FaultLogger.register(module.getEncoder());
     }
 
     FaultLogger.register(getPigeon2());
@@ -503,7 +505,7 @@ public class Swerve extends SwerveDrivetrain implements Subsystem, SelfChecked {
   }
 
   // TODO: add self check routines
-  private Command selfCheckModule(String name, SwerveModule module) {
+  private Command selfCheckModule(String name, SwerveModule<TalonFX, TalonFX, CANcoder> module) {
     return shiftSequence();
   }
 
