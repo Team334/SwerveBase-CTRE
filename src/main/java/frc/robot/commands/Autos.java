@@ -4,11 +4,7 @@
 
 package frc.robot.commands;
 
-import static edu.wpi.first.wpilibj2.command.Commands.*;
-
 import choreo.auto.AutoFactory;
-import choreo.auto.AutoFactory.AutoBindings;
-import choreo.auto.AutoRoutine;
 import dev.doglog.DogLog;
 import frc.robot.subsystems.Swerve;
 
@@ -27,7 +23,6 @@ public class Autos {
             _swerve::followTrajectory,
             true,
             _swerve,
-            new AutoBindings(), // TODO
             (traj, isActive) -> {
               traj = traj.flipped();
 
@@ -36,36 +31,5 @@ public class Autos {
               DogLog.log("Auto/Current Trajectory Duration", traj.getTotalTime());
               DogLog.log("Auto/Current Trajectory Is Active", isActive);
             });
-  }
-
-  public AutoRoutine simpleTrajectory() {
-    var routine = _factory.newRoutine("Routine");
-    var traj = routine.trajectory("Simple Trajectory");
-
-    routine.active().onTrue(sequence(routine.resetOdometry(traj), traj.cmd()));
-
-    return routine;
-  }
-
-  public AutoRoutine branchingAuto() {
-    final boolean branch =
-        true; // Change this if you want the auton to branch (Maybe simulate some trigger later)
-
-    var routine = _factory.newRoutine("branchingAuto");
-
-    // Loading traj
-    var startToM1 = routine.trajectory("startToM1");
-    var M1toScore = routine.trajectory("M1toScore");
-    var M1toM2 = routine.trajectory("M1toM2");
-    var M2toScore = routine.trajectory("M2toScore");
-
-    routine.active().onTrue(sequence(routine.resetOdometry(startToM1), startToM1.cmd()));
-
-    startToM1.done().and(() -> branch).onTrue(M1toM2.cmd());
-    startToM1.done().and(() -> !branch).onTrue(M1toScore.cmd());
-
-    M1toM2.done().onTrue(M2toScore.cmd());
-
-    return routine;
   }
 }

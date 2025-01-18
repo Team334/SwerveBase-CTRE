@@ -35,7 +35,7 @@ public class RobotTest {
   public void fmsFileOnly() {
     // at the start should be both nt and file logging
     assert Epilogue.getConfig().backend instanceof MultiBackend; // multilogger setup
-    assert DogLog.getOptions().ntPublish();
+    assert DogLog.getOptions().ntPublish().getAsBoolean();
 
     DriverStationSim.setFmsAttached(true);
     DriverStationSim.notifyNewData();
