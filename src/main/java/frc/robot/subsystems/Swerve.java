@@ -28,6 +28,8 @@ import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.kinematics.SwerveDriveKinematics;
 import edu.wpi.first.math.kinematics.SwerveModuleState;
 import edu.wpi.first.networktables.NetworkTableInstance;
+import edu.wpi.first.wpilibj.DriverStation;
+import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj.Notifier;
 import edu.wpi.first.wpilibj.RobotController;
 import edu.wpi.first.wpilibj2.command.Command;
@@ -159,6 +161,8 @@ public class Swerve extends TunerSwerveDrivetrain implements Subsystem, SelfChec
   private final Set<Pose3d> _detectedTags = new HashSet<>();
 
   private final VisionSystemSim _visionSystemSim;
+
+  private boolean _hasAppliedDriverPerspective;
 
   /**
    * Creates a new CommandSwerveDrivetrain.
@@ -475,6 +479,17 @@ public class Swerve extends TunerSwerveDrivetrain implements Subsystem, SelfChec
   @Override
   public void periodic() {
     updateVisionPoseEstimates();
+
+    if (!_hasAppliedDriverPerspective || DriverStation.isDisabled()) {
+      DriverStation.getAlliance()
+          .ifPresent(
+              allianceColor -> {
+                setOperatorPerspectiveForward(
+                    allianceColor == Alliance.Red ? Rotation2d.k180deg : Rotation2d.kZero);
+
+                _hasAppliedDriverPerspective = true;
+              });
+    }
 
     DogLog.log(
         "Swerve/Accepted Estimates",
