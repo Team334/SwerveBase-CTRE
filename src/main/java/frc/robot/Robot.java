@@ -97,7 +97,8 @@ public class Robot extends TimedRobot {
     SmartDashboard.putData(new WheelRadiusCharacterization(_swerve));
     SmartDashboard.putData(runOnce(FaultLogger::clear).withName("Clear Faults"));
 
-    // TODO: set up autos here
+    // set up auto chooser
+    _autoChooser.addRoutine("Simple Trajectory", _autos::simpleTrajectory);
 
     SmartDashboard.putData("Auto Chooser", _autoChooser);
 

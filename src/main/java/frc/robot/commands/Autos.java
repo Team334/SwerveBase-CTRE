@@ -4,7 +4,10 @@
 
 package frc.robot.commands;
 
+import static edu.wpi.first.wpilibj2.command.Commands.*;
+
 import choreo.auto.AutoFactory;
+import choreo.auto.AutoRoutine;
 import dev.doglog.DogLog;
 import frc.robot.subsystems.Swerve;
 
@@ -31,5 +34,14 @@ public class Autos {
               DogLog.log("Auto/Current Trajectory Duration", traj.getTotalTime());
               DogLog.log("Auto/Current Trajectory Is Active", isActive);
             });
+  }
+
+  public AutoRoutine simpleTrajectory() {
+    var routine = _factory.newRoutine("Simple Trajectory");
+    var trajectory = routine.trajectory("simpleTrajectory");
+
+    routine.active().onTrue(sequence(trajectory.resetOdometry(), trajectory.cmd()));
+
+    return routine;
   }
 }
