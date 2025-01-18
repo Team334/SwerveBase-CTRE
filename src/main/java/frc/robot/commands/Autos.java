@@ -6,15 +6,66 @@ package frc.robot.commands;
 
 import static edu.wpi.first.wpilibj2.command.Commands.*;
 
-import edu.wpi.first.wpilibj2.command.Command;
+import choreo.auto.AutoFactory;
+import choreo.auto.AutoFactory.AutoBindings;
+import choreo.auto.AutoRoutine;
+import dev.doglog.DogLog;
+import frc.robot.subsystems.Swerve;
 
-public final class Autos {
-  private Autos() {
-    throw new UnsupportedOperationException("This is a utility class!");
+public class Autos {
+  private final Swerve _swerve;
+
+  private final AutoFactory _factory;
+
+  public Autos(Swerve swerve) {
+    _swerve = swerve;
+
+    _factory =
+        new AutoFactory(
+            _swerve::getPose,
+            _swerve::resetPose,
+            _swerve::followTrajectory,
+            true,
+            _swerve,
+            new AutoBindings(), // TODO
+            (traj, isActive) -> {
+              traj = traj.flipped();
+
+              DogLog.log("Auto/Current Trajectory", traj.getPoses());
+              DogLog.log("Auto/Current Trajectory Name", traj.name());
+              DogLog.log("Auto/Current Trajectory Duration", traj.getTotalTime());
+              DogLog.log("Auto/Current Trajectory Is Active", isActive);
+            });
   }
 
-  /** An auto that doesn't do anything for 15 sec. */
-  public static Command none() {
-    return idle();
+  public AutoRoutine simpleTrajectory() {
+    var routine = _factory.newRoutine("Routine");
+    var traj = routine.trajectory("Simple Trajectory");
+
+    routine.active().onTrue(sequence(routine.resetOdometry(traj), traj.cmd()));
+
+    return routine;
+  }
+
+  public AutoRoutine branchingAuto() {
+    final boolean branch =
+        true; // Change this if you want the auton to branch (Maybe simulate some trigger later)
+
+    var routine = _factory.newRoutine("branchingAuto");
+
+    // Loading traj
+    var startToM1 = routine.trajectory("startToM1");
+    var M1toScore = routine.trajectory("M1toScore");
+    var M1toM2 = routine.trajectory("M1toM2");
+    var M2toScore = routine.trajectory("M2toScore");
+
+    routine.active().onTrue(sequence(routine.resetOdometry(startToM1), startToM1.cmd()));
+
+    startToM1.done().and(() -> branch).onTrue(M1toM2.cmd());
+    startToM1.done().and(() -> !branch).onTrue(M1toScore.cmd());
+
+    M1toM2.done().onTrue(M2toScore.cmd());
+
+    return routine;
   }
 }
