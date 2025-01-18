@@ -12,7 +12,7 @@ import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.numbers.N2;
 import edu.wpi.first.math.trajectory.TrapezoidProfile.Constraints;
-import edu.wpi.first.units.measure.Distance;
+import edu.wpi.first.units.measure.measure.Distance;
 import frc.robot.Constants.SwerveConstants;
 
 public class HolonomicController {

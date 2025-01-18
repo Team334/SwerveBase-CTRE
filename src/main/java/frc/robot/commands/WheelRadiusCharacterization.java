@@ -10,7 +10,7 @@ import dev.doglog.DogLog;
 import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.kinematics.SwerveModulePosition;
 import edu.wpi.first.math.util.Units;
-import edu.wpi.first.units.measure.Distance;
+import edu.wpi.first.units.measure.measure.Distance;
 import edu.wpi.first.wpilibj2.command.Command;
 import frc.lib.FaultLogger;
 import frc.lib.FaultsTable.FaultType;

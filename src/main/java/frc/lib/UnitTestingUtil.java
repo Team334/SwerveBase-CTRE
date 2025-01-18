@@ -5,7 +5,7 @@ import static edu.wpi.first.units.Units.Seconds;
 import dev.doglog.DogLog;
 import edu.wpi.first.hal.HAL;
 import edu.wpi.first.networktables.NetworkTableInstance;
-import edu.wpi.first.units.measure.Time;
+import edu.wpi.first.units.measure.measure.Time;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.simulation.DriverStationSim;
