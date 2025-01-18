@@ -11,9 +11,9 @@ A base project for future robots that has CTRE generated swerve drive code and P
 - A custom `VisionPoseEstimator` class that reads from a Photon Vision camera and updates the swerve pose estimator with filtered and disambiguated AprilTag vision measurements.
 - Automated wheel radius characterization routine (based on 6328's wheel characterization).
 - A custom zshell script that performs camera calibration with mrcal given an input video of a chessboard dance.
+- Choreo support.
 
 # Todo
-- Add choreo (or pathplanner?) support.
 - Add more unit tests.
 - Add proper licenses.
 
