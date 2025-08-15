@@ -37,7 +37,7 @@ public final class Constants {
 
   public static class FieldConstants {
     public static final AprilTagFieldLayout fieldLayout =
-        AprilTagFieldLayout.loadField(AprilTagFields.k2025Reefscape);
+        AprilTagFieldLayout.loadField(AprilTagFields.k2025ReefscapeWelded);
   }
 
   public static class VisionConstants {
