@@ -18,6 +18,7 @@ import edu.wpi.first.epilogue.logging.NTEpilogueBackend;
 import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.wpilibj.DataLogManager;
 import edu.wpi.first.wpilibj.DriverStation;
+import edu.wpi.first.wpilibj.PowerDistribution;
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
@@ -65,6 +66,7 @@ public class Robot extends TimedRobot {
 
     // set up loggers
     DogLog.setOptions(DogLog.getOptions().withCaptureDs(true));
+    DogLog.setPdh(new PowerDistribution());
 
     setFileOnly(false); // file-only once connected to fms
 
@@ -80,8 +82,9 @@ public class Robot extends TimedRobot {
     SmartDashboard.putData(
         "Robot Self Check",
         sequence(
-                runOnce(() -> DataLogManager.log("Robot Self Check Started!")),
-                runOnce(() -> DataLogManager.log("Robot Self Check Successful!")))
+                runOnce(() -> DataLogManager.log("Robot Self Check Started")),
+                _swerve.fullSelfCheck(),
+                runOnce(() -> DataLogManager.log("Robot Self Check Finished")))
             .withName("Robot Self Check"));
 
     SmartDashboard.putData(runOnce(FaultLogger::clear).withName("Clear Faults"));

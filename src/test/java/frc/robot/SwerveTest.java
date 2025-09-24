@@ -18,7 +18,7 @@ public class SwerveTest {
   }
 
   @AfterEach
-  public void close() throws Exception {
+  public void close() {
     reset(_swerve);
   }
 }

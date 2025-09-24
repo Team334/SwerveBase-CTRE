@@ -5,9 +5,13 @@
 package frc.robot.subsystems;
 
 import static edu.wpi.first.units.Units.*;
+import static edu.wpi.first.wpilibj2.command.Commands.sequence;
 
 import com.ctre.phoenix6.Utils;
+import com.ctre.phoenix6.hardware.CANcoder;
+import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.swerve.SwerveDrivetrainConstants;
+import com.ctre.phoenix6.swerve.SwerveModule;
 import com.ctre.phoenix6.swerve.SwerveModule.DriveRequestType;
 import com.ctre.phoenix6.swerve.SwerveModuleConstants;
 import com.ctre.phoenix6.swerve.SwerveRequest.*;
@@ -17,18 +21,25 @@ import edu.wpi.first.epilogue.Logged.Strategy;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
+import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj.Notifier;
 import edu.wpi.first.wpilibj.RobotController;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Subsystem;
+import frc.lib.FaultLogger;
+import frc.lib.FaultsTable;
+import frc.lib.FaultsTable.Fault;
+import frc.lib.FaultsTable.FaultType;
 import frc.lib.InputStream;
 import frc.lib.SelfChecked;
 import frc.robot.Constants;
 import frc.robot.Constants.SwerveConstants;
 import frc.robot.Robot;
 import frc.robot.generated.TunerConstants.TunerSwerveDrivetrain;
+import java.util.HashSet;
+import java.util.Set;
 
 @Logged(strategy = Strategy.OPT_IN)
 public class Swerve extends TunerSwerveDrivetrain implements Subsystem, SelfChecked {
@@ -40,6 +51,15 @@ public class Swerve extends TunerSwerveDrivetrain implements Subsystem, SelfChec
 
   private double _lastSimTime = 0;
   private Notifier _simNotifier;
+
+  // faults and the table containing them
+  private Set<Fault> _faults = new HashSet<Fault>();
+  private FaultsTable _faultsTable =
+      new FaultsTable(
+          NetworkTableInstance.getDefault().getTable("Self Check"),
+          getName() + " Faults"); // TODO: watch out unit tests
+
+  private boolean _hasError = false;
 
   @Logged(name = "Driver Chassis Speeds")
   private final ChassisSpeeds _driverChassisSpeeds = new ChassisSpeeds();
@@ -90,10 +110,80 @@ public class Swerve extends TunerSwerveDrivetrain implements Subsystem, SelfChec
           DogLog.log("Swerve/Odometry Period", state.OdometryPeriod);
         });
 
+    registerFallibles();
+
     if (Robot.isSimulation()) {
       startSimThread();
-    } else {
     }
+  }
+
+  // COPIED FROM ADVANCED SUBSYSTEM
+
+  /**
+   * Returns the name of the command that's currently requiring this subsystem. Is "None" when the
+   * command in null.
+   */
+  @Logged(name = "Current Command")
+  public final String currentCommandName() {
+    if (getCurrentCommand() != null) {
+      return getCurrentCommand().getName();
+    }
+
+    return "None";
+  }
+
+  /** Adds a new fault under this subsystem. */
+  private final void addFault(String description, FaultType faultType) {
+    _hasError = (faultType == FaultType.ERROR);
+
+    Fault fault = new Fault(description, faultType);
+
+    DogLog.logFault(fault.toString());
+
+    _faults.add(fault);
+    _faultsTable.set(_faults);
+  }
+
+  /** Clears this subsystem's faults. */
+  public final void clearFaults() {
+    _faults.clear();
+    _faultsTable.set(_faults);
+
+    _hasError = false;
+  }
+
+  /** Returns the faults belonging to this subsystem. */
+  public final Set<Fault> getFaults() {
+    return _faults;
+  }
+
+  /** Returns whether this subsystem contains the following fault. */
+  public final boolean hasFault(String description, FaultType faultType) {
+    return _faults.contains(new Fault(description, faultType));
+  }
+
+  /** Returns whether this subsystem has errors (has fault type of error). */
+  @Logged(name = "Has Error")
+  public final boolean hasError() {
+    return _hasError;
+  }
+
+  /** Returns a full Command that self checks this Subsystem for pre-match. */
+  public final Command fullSelfCheck() {
+    Command selfCheck =
+        sequence(runOnce(this::clearFaults), selfCheck().until(this::hasError))
+            .withName(getName() + " Self Check");
+    return selfCheck;
+  }
+
+  private void registerFallibles() {
+    for (SwerveModule<TalonFX, TalonFX, CANcoder> module : getModules()) {
+      FaultLogger.register(module.getDriveMotor());
+      FaultLogger.register(module.getSteerMotor());
+      FaultLogger.register(module.getEncoder());
+    }
+
+    FaultLogger.register(getPigeon2());
   }
 
   private void startSimThread() {
@@ -126,6 +216,21 @@ public class Swerve extends TunerSwerveDrivetrain implements Subsystem, SelfChec
   /** Brakes the swerve drive (modules form an "X" formation). */
   public Command brake() {
     return run(() -> setControl(_brakeRequest)).withName("Brake");
+  }
+
+  /** Resets the heading to face away from the alliance wall. */
+  public Command resetHeading() {
+    return runOnce(
+        () -> {
+          Rotation2d rotation =
+              DriverStation.getAlliance()
+                  .map(
+                      allianceColor ->
+                          allianceColor == Alliance.Red ? Rotation2d.k180deg : Rotation2d.kZero)
+                  .orElse(Rotation2d.kZero);
+
+          resetRotation(rotation);
+        });
   }
 
   /**
@@ -205,9 +310,9 @@ public class Swerve extends TunerSwerveDrivetrain implements Subsystem, SelfChec
     return getPose().getRotation();
   }
 
-  /** Returns the robot's estimated rotation at the given timestamp. */
+  /** Returns the robot's estimated rotation at the given timestamp (FPGA time). */
   public Rotation2d getHeadingAtTime(double timestamp) {
-    return samplePoseAt(timestamp).orElse(getPose()).getRotation();
+    return samplePoseAt(Utils.fpgaToCurrentTime(timestamp)).orElse(getPose()).getRotation();
   }
 
   /** Wrapper for getting current robot-relative chassis speeds. */
@@ -231,6 +336,21 @@ public class Swerve extends TunerSwerveDrivetrain implements Subsystem, SelfChec
 
   @Override
   public void simulationPeriodic() {}
+
+  // TODO: add self check routines
+  private Command selfCheckModule(String name, SwerveModule<TalonFX, TalonFX, CANcoder> module) {
+    return shiftSequence();
+  }
+
+  @Override
+  public Command selfCheck() {
+    return shiftSequence(
+        // check all modules individually
+        selfCheckModule("Front Left", getModule(0)),
+        selfCheckModule("Front Right", getModule(1)),
+        selfCheckModule("Back Left", getModule(2)),
+        selfCheckModule("Back Right", getModule(3)));
+  }
 
   @Override
   public void close() {
