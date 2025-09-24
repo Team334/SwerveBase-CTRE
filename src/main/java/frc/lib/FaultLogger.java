@@ -4,6 +4,7 @@
 
 package frc.lib;
 
+import com.ctre.phoenix6.BaseStatusSignal;
 import com.ctre.phoenix6.hardware.CANcoder;
 import com.ctre.phoenix6.hardware.Pigeon2;
 import com.ctre.phoenix6.hardware.TalonFX;
@@ -46,12 +47,18 @@ public final class FaultLogger {
   private static FaultsTable activeAlerts;
   private static FaultsTable totalAlerts;
 
+  private static boolean _hasBeenSetup = false;
+
   /** Must be called to setup the fault logger. */
   public static void setup(NetworkTableInstance ntInst) {
+    if (_hasBeenSetup) return;
+
     var base = ntInst.getTable("Faults");
 
     activeAlerts = new FaultsTable(base, "Active Faults");
     totalAlerts = new FaultsTable(base, "Total Faults");
+
+    _hasBeenSetup = true;
   }
 
   /** Must be called to setup the fault logger. */
@@ -173,6 +180,17 @@ public final class FaultLogger {
   public static void register(TalonFX talonFX) {
     String name = CTREUtil.getName(talonFX);
 
+    CTREUtil.attempt(
+        () ->
+            BaseStatusSignal.setUpdateFrequencyForAll(
+                4,
+                talonFX.getFault_Hardware(),
+                talonFX.getFault_BootDuringEnable(),
+                talonFX.getFault_DeviceTemp(),
+                talonFX.getFault_ProcTemp(),
+                talonFX.getFault_Undervoltage()),
+        talonFX);
+
     register(
         () -> talonFX.getFault_Hardware().getValue(), name + "- Hardware Fault.", FaultType.ERROR);
     register(
@@ -201,6 +219,16 @@ public final class FaultLogger {
   public static void register(CANcoder cancoder) {
     String name = CTREUtil.getName(cancoder);
 
+    CTREUtil.attempt(
+        () ->
+            BaseStatusSignal.setUpdateFrequencyForAll(
+                4,
+                cancoder.getFault_Hardware(),
+                cancoder.getFault_BadMagnet(),
+                cancoder.getFault_BootDuringEnable(),
+                cancoder.getFault_Undervoltage()),
+        cancoder);
+
     register(
         () -> cancoder.getFault_Hardware().getValue(), name + "- Hardware Fault.", FaultType.ERROR);
     register(
@@ -224,6 +252,15 @@ public final class FaultLogger {
    */
   public static void register(Pigeon2 pigeon) {
     String name = CTREUtil.getName(pigeon);
+
+    CTREUtil.attempt(
+        () ->
+            BaseStatusSignal.setUpdateFrequencyForAll(
+                4,
+                pigeon.getFault_Hardware(),
+                pigeon.getFault_BootDuringEnable(),
+                pigeon.getFault_Undervoltage()),
+        pigeon);
 
     register(
         () -> pigeon.getFault_Hardware().getValue(), name + "- Hardware Fault.", FaultType.ERROR);
