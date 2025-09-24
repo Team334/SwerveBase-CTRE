@@ -12,8 +12,6 @@ import edu.wpi.first.networktables.NetworkTableInstance;
 import java.util.function.DoubleSupplier;
 import java.util.function.DoubleUnaryOperator;
 
-// (from team 1155)
-
 /** A functional interface to aid in modifying double suppliers, such as from a joystick. */
 @FunctionalInterface
 public interface InputStream extends DoubleSupplier {

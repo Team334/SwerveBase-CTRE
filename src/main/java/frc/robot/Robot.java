@@ -6,9 +6,7 @@ package frc.robot;
 
 import static edu.wpi.first.units.Units.*;
 import static edu.wpi.first.wpilibj2.command.Commands.*;
-import static edu.wpi.first.wpilibj2.command.button.RobotModeTriggers.*;
 
-import choreo.auto.AutoChooser;
 import com.ctre.phoenix6.SignalLogger;
 import dev.doglog.DogLog;
 import edu.wpi.first.epilogue.Epilogue;
@@ -17,8 +15,6 @@ import edu.wpi.first.epilogue.Logged.Strategy;
 import edu.wpi.first.epilogue.logging.EpilogueBackend;
 import edu.wpi.first.epilogue.logging.FileBackend;
 import edu.wpi.first.epilogue.logging.NTEpilogueBackend;
-import edu.wpi.first.math.geometry.Pose2d;
-import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.wpilibj.DataLogManager;
 import edu.wpi.first.wpilibj.DriverStation;
@@ -30,8 +26,6 @@ import frc.lib.FaultLogger;
 import frc.lib.InputStream;
 import frc.robot.Constants.Ports;
 import frc.robot.Constants.SwerveConstants;
-import frc.robot.commands.Autos;
-import frc.robot.commands.WheelRadiusCharacterization;
 import frc.robot.generated.TunerConstants;
 import frc.robot.subsystems.Swerve;
 
@@ -49,9 +43,6 @@ public class Robot extends TimedRobot {
   // subsystems
   @Logged(name = "Swerve")
   private final Swerve _swerve = TunerConstants.createDrivetrain();
-
-  private final Autos _autos = new Autos(_swerve);
-  private final AutoChooser _autoChooser = new AutoChooser();
 
   private final NetworkTableInstance _ntInst;
 
@@ -90,19 +81,10 @@ public class Robot extends TimedRobot {
         "Robot Self Check",
         sequence(
                 runOnce(() -> DataLogManager.log("Robot Self Check Started!")),
-                _swerve.fullSelfCheck(),
                 runOnce(() -> DataLogManager.log("Robot Self Check Successful!")))
             .withName("Robot Self Check"));
 
-    SmartDashboard.putData(new WheelRadiusCharacterization(_swerve));
     SmartDashboard.putData(runOnce(FaultLogger::clear).withName("Clear Faults"));
-
-    // set up auto chooser
-    _autoChooser.addRoutine("Simple Trajectory", _autos::simpleTrajectory);
-
-    SmartDashboard.putData("Auto Chooser", _autoChooser);
-
-    autonomous().whileTrue(_autoChooser.selectedCommandScheduler());
 
     addPeriodic(FaultLogger::update, 1);
   }
@@ -137,10 +119,6 @@ public class Robot extends TimedRobot {
 
     _driverController.x().whileTrue(_swerve.brake());
     _driverController.a().onTrue(_swerve.toggleFieldOriented());
-
-    _driverController
-        .b()
-        .whileTrue(_swerve.driveTo(new Pose2d(10, 3, Rotation2d.fromDegrees(-150))));
   }
 
   /**
