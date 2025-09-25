@@ -260,27 +260,6 @@ public class Swerve extends TunerSwerveDrivetrain implements Subsystem, SelfChec
     _driverChassisSpeeds.vyMetersPerSecond = velY;
     _driverChassisSpeeds.omegaRadiansPerSecond = velOmega;
 
-    // TODO: is this even needed?
-
-    // go through a couple of steps to ensure that input speeds are actually achievable
-    // ChassisSpeeds tempSpeeds = _driverChassisSpeeds;
-    // SwerveModuleState[] tempStates;
-
-    // if (_isFieldOriented)
-    //   tempSpeeds = ChassisSpeeds.fromFieldRelativeSpeeds(tempSpeeds, getHeading());
-
-    // tempStates = getKinematics().toSwerveModuleStates(tempSpeeds);
-    // SwerveDriveKinematics.desaturateWheelSpeeds(tempStates,
-    // SwerveConstants.maxTranslationalSpeed);
-    // tempSpeeds = getKinematics().toChassisSpeeds(tempStates);
-
-    // if (_isFieldOriented)
-    //   tempSpeeds = ChassisSpeeds.fromRobotRelativeSpeeds(tempSpeeds, getHeading());
-
-    // velX = tempSpeeds.vxMetersPerSecond;
-    // velY = tempSpeeds.vyMetersPerSecond;
-    // velOmega = tempSpeeds.omegaRadiansPerSecond;
-
     if (_isFieldOriented) {
       setControl(
           _fieldCentricRequest
