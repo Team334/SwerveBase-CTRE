@@ -6,6 +6,7 @@ package frc.robot;
 
 import static edu.wpi.first.units.Units.*;
 import static edu.wpi.first.wpilibj2.command.Commands.*;
+import static edu.wpi.first.wpilibj2.command.button.RobotModeTriggers.*;
 
 import com.ctre.phoenix6.SignalLogger;
 import dev.doglog.DogLog;
@@ -27,6 +28,7 @@ import frc.lib.FaultLogger;
 import frc.lib.InputStream;
 import frc.robot.Constants.Ports;
 import frc.robot.Constants.SwerveConstants;
+import frc.robot.commands.Autos;
 import frc.robot.generated.TunerConstants;
 import frc.robot.subsystems.Swerve;
 
@@ -44,6 +46,8 @@ public class Robot extends TimedRobot {
   // subsystems
   @Logged(name = "Swerve")
   private final Swerve _swerve = TunerConstants.createDrivetrain();
+
+  private final Autos _autos = new Autos(_swerve);
 
   private final NetworkTableInstance _ntInst;
 
@@ -90,6 +94,8 @@ public class Robot extends TimedRobot {
     SmartDashboard.putData(runOnce(FaultLogger::clear).withName("Clear Faults"));
 
     addPeriodic(FaultLogger::update, 1);
+
+    autonomous().whileTrue(_autos.test()); // TODO: change to chooser later
   }
 
   // set logging to be file only or not

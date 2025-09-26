@@ -7,6 +7,7 @@ package frc.robot.subsystems;
 import static edu.wpi.first.units.Units.*;
 import static edu.wpi.first.wpilibj2.command.Commands.sequence;
 
+import choreo.trajectory.SwerveSample;
 import com.ctre.phoenix6.Utils;
 import com.ctre.phoenix6.hardware.CANcoder;
 import com.ctre.phoenix6.hardware.TalonFX;
@@ -38,6 +39,7 @@ import frc.robot.Constants;
 import frc.robot.Constants.SwerveConstants;
 import frc.robot.Robot;
 import frc.robot.generated.TunerConstants.TunerSwerveDrivetrain;
+import frc.robot.utils.HolonomicController;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -48,6 +50,11 @@ public class Swerve extends TunerSwerveDrivetrain implements Subsystem, SelfChec
   private final FieldCentric _fieldCentricRequest = new FieldCentric();
 
   private final SwerveDriveBrake _brakeRequest = new SwerveDriveBrake();
+
+  // auton request for choreo
+  private final ApplyFieldSpeeds _fieldSpeedsRequest = new ApplyFieldSpeeds();
+
+  private final HolonomicController _poseController = new HolonomicController();
 
   private double _lastSimTime = 0;
   private Notifier _simNotifier;
@@ -93,6 +100,9 @@ public class Swerve extends TunerSwerveDrivetrain implements Subsystem, SelfChec
     _fieldCentricRequest
         .withDeadband(SwerveConstants.translationalDeadband)
         .withRotationalDeadband(SwerveConstants.rotationalDeadband);
+
+    // closed loop vel always in auto
+    _fieldSpeedsRequest.withDriveRequestType(DriveRequestType.Velocity);
 
     registerTelemetry(
         state -> {
@@ -277,6 +287,24 @@ public class Swerve extends TunerSwerveDrivetrain implements Subsystem, SelfChec
               .withDriveRequestType(
                   _isOpenLoop ? DriveRequestType.OpenLoopVoltage : DriveRequestType.Velocity));
     }
+  }
+
+  /**
+   * Sets the chassis state to the given {@link SwerveSample} to aid trajectory following.
+   *
+   * @param sample The SwerveSample.
+   */
+  public void followTrajectory(SwerveSample sample) {
+    var desiredSpeeds = sample.getChassisSpeeds();
+    var desiredPose = sample.getPose();
+
+    desiredSpeeds = _poseController.calculate(desiredSpeeds, desiredPose, getPose());
+
+    setControl(
+        _fieldSpeedsRequest
+            .withSpeeds(desiredSpeeds)
+            .withWheelForceFeedforwardsX(sample.moduleForcesX())
+            .withWheelForceFeedforwardsY(sample.moduleForcesY()));
   }
 
   /** Wrapper for getting estimated pose. */
