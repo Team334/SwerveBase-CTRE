@@ -30,7 +30,7 @@ public class Autos {
             });
   }
 
-  public Command test() {
-    return sequence(print("AUTO!!!"));
+  public Command example() {
+    return sequence(_factory.resetOdometry("example"), _factory.trajectoryCmd("example"));
   }
 }

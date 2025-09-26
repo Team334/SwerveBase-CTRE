@@ -95,7 +95,7 @@ public class Robot extends TimedRobot {
 
     addPeriodic(FaultLogger::update, 1);
 
-    autonomous().whileTrue(_autos.test()); // TODO: change to chooser later
+    autonomous().whileTrue(_autos.example()); // TODO: change to chooser later
   }
 
   // set logging to be file only or not
