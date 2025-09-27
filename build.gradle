@@ -46,6 +46,7 @@ def deployArtifact = deploy.targets.roborio.artifacts.frcJava
 
 // Set to true to use debug for JNI.
 wpi.java.debugJni = false
+// wpi.sim.envVar("JAVA_TOOL_OPTIONS", "-verbose:class") // view classloading sim
 
 // Set this to true to enable desktop support.
 def includeDesktopSupport = true
