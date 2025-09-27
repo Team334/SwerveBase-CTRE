@@ -128,6 +128,7 @@ public class Robot extends TimedRobot {
 
     _driverController.x().whileTrue(_swerve.brake());
     _driverController.a().onTrue(_swerve.toggleFieldOriented());
+    _driverController.y().onTrue(_swerve.resetHeading());
   }
 
   /**
