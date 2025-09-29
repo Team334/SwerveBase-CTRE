@@ -42,6 +42,7 @@ import frc.robot.generated.TunerConstants.TunerSwerveDrivetrain;
 import frc.robot.utils.HolonomicController;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.function.Supplier;
 
 @Logged(strategy = Strategy.OPT_IN)
 public class Swerve extends TunerSwerveDrivetrain implements Subsystem, SelfChecked {
@@ -51,7 +52,7 @@ public class Swerve extends TunerSwerveDrivetrain implements Subsystem, SelfChec
 
   private final SwerveDriveBrake _brakeRequest = new SwerveDriveBrake();
 
-  // auton request for choreo
+  // auton request for choreo / pose controller
   private final ApplyFieldSpeeds _fieldSpeedsRequest = new ApplyFieldSpeeds();
 
   private final HolonomicController _poseController = new HolonomicController();
@@ -305,6 +306,31 @@ public class Swerve extends TunerSwerveDrivetrain implements Subsystem, SelfChec
             .withSpeeds(desiredSpeeds)
             .withWheelForceFeedforwardsX(sample.moduleForcesX())
             .withWheelForceFeedforwardsY(sample.moduleForcesY()));
+  }
+
+  /**
+   * Drives the robot in a straight line to some given goal pose. Uses the pose estimator for robot
+   * pose.
+   */
+  public Command driveTo(Pose2d goalPose) {
+    return driveTo(goalPose, this::getPose);
+  }
+
+  /** Drives the robot in a straight line to some given goal pose. */
+  private Command driveTo(Pose2d goalPose, Supplier<Pose2d> robotPose) {
+    return run(() -> {
+          ChassisSpeeds speeds = _poseController.calculate(robotPose.get());
+
+          setControl(_fieldSpeedsRequest.withSpeeds(speeds));
+        })
+        .beforeStarting(
+            () ->
+                _poseController.reset(
+                    robotPose.get(),
+                    goalPose,
+                    ChassisSpeeds.fromRobotRelativeSpeeds(getChassisSpeeds(), getHeading())))
+        .until(_poseController::isFinished)
+        .withName("Drive To");
   }
 
   /** Wrapper for getting estimated pose. */

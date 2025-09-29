@@ -1,5 +1,7 @@
 package frc.robot.utils;
 
+import static edu.wpi.first.units.Units.*;
+
 import dev.doglog.DogLog;
 import edu.wpi.first.math.VecBuilder;
 import edu.wpi.first.math.Vector;
@@ -13,9 +15,21 @@ import edu.wpi.first.math.trajectory.TrapezoidProfile.Constraints;
 
 public class HolonomicController {
   private final ProfiledPIDController _translationProfile =
-      new ProfiledPIDController(0, 0, 0, new Constraints(0, 0));
+      new ProfiledPIDController(
+          0,
+          0,
+          0,
+          new Constraints(
+              MetersPerSecond.of(3).in(MetersPerSecond),
+              MetersPerSecondPerSecond.of(4).in(MetersPerSecondPerSecond)));
   private final ProfiledPIDController _headingProfile =
-      new ProfiledPIDController(0, 0, 0, new Constraints(Math.PI, Math.PI * 2));
+      new ProfiledPIDController(
+          0,
+          0,
+          0,
+          new Constraints(
+              RadiansPerSecond.of(Math.PI).in(RadiansPerSecond),
+              RadiansPerSecondPerSecond.of(Math.PI * 2).in(RadiansPerSecondPerSecond)));
 
   private Vector<N2> _translationDirection = VecBuilder.fill(0, 0);
 
@@ -32,7 +46,11 @@ public class HolonomicController {
     _headingProfile.enableContinuousInput(-Math.PI, Math.PI);
   }
 
-  // TODO: add is finished condition
+  /** Whether the chassis profiles have been completed or not. */
+  public boolean isFinished() {
+    return _translationProfile.getSetpoint().equals(_translationProfile.getGoal())
+        && _headingProfile.getSetpoint().equals(_headingProfile.getGoal());
+  }
 
   /** Resets the PID controllers. */
   public void reset() {
