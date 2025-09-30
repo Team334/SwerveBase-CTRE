@@ -17,6 +17,7 @@ import edu.wpi.first.epilogue.logging.EpilogueBackend;
 import edu.wpi.first.epilogue.logging.FileBackend;
 import edu.wpi.first.epilogue.logging.NTEpilogueBackend;
 import edu.wpi.first.networktables.NetworkTableInstance;
+import edu.wpi.first.util.ClassPreloader;
 import edu.wpi.first.wpilibj.DataLogManager;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.PowerDistribution;
@@ -96,6 +97,12 @@ public class Robot extends TimedRobot {
     addPeriodic(FaultLogger::update, 1);
 
     autonomous().whileTrue(_autos.example()); // TODO: change to chooser later
+
+    ClassPreloader.preload(
+        "edu.wpi.first.math.geometry.Transform2d",
+        "edu.wpi.first.math.geometry.Twist2d",
+        "java.lang.FdLibm$Hypot",
+        "choreo.trajectory.Trajectory");
   }
 
   // set logging to be file only or not
