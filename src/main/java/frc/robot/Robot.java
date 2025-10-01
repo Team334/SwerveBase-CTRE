@@ -8,6 +8,7 @@ import static edu.wpi.first.units.Units.*;
 import static edu.wpi.first.wpilibj2.command.Commands.*;
 import static edu.wpi.first.wpilibj2.command.button.RobotModeTriggers.*;
 
+import choreo.auto.AutoChooser;
 import com.ctre.phoenix6.SignalLogger;
 import dev.doglog.DogLog;
 import edu.wpi.first.epilogue.Epilogue;
@@ -96,8 +97,15 @@ public class Robot extends TimedRobot {
 
     addPeriodic(FaultLogger::update, 1);
 
-    autonomous().whileTrue(_autos.example()); // TODO: change to chooser later
+    AutoChooser chooser = new AutoChooser();
 
+    chooser.addRoutine("Example", _autos::example);
+
+    SmartDashboard.putData("Auto Chooser", chooser);
+
+    autonomous().whileTrue(chooser.selectedCommandScheduler());
+
+    // TODO: maybe isn't needed
     ClassPreloader.preload(
         "edu.wpi.first.math.geometry.Transform2d",
         "edu.wpi.first.math.geometry.Twist2d",

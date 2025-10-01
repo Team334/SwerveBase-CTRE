@@ -1,10 +1,10 @@
 package frc.robot.commands;
 
-import static edu.wpi.first.wpilibj2.command.Commands.*;
-
 import choreo.auto.AutoFactory;
+import choreo.auto.AutoRoutine;
+import choreo.auto.AutoTrajectory;
 import dev.doglog.DogLog;
-import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.wpilibj2.command.Commands;
 import frc.robot.subsystems.Swerve;
 
 public class Autos {
@@ -30,7 +30,13 @@ public class Autos {
             });
   }
 
-  public Command example() {
-    return sequence(_factory.resetOdometry("example"), _factory.trajectoryCmd("example"));
+  public AutoRoutine example() {
+    AutoRoutine routine = _factory.newRoutine("example");
+
+    AutoTrajectory exampleTraj = routine.trajectory("example");
+
+    routine.active().onTrue(Commands.sequence(exampleTraj.resetOdometry(), exampleTraj.cmd()));
+
+    return routine;
   }
 }
