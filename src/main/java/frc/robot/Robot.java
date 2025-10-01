@@ -77,7 +77,7 @@ public class Robot extends TimedRobot {
     setFileOnly(false); // file-only once connected to fms
 
     Epilogue.bind(this);
-    SignalLogger.start();
+    SignalLogger.start(); // TODO: log canivore can data as well
 
     DriverStation.silenceJoystickConnectionWarning(isSimulation());
 
