@@ -8,15 +8,20 @@ import dev.doglog.DogLog;
 import edu.wpi.first.apriltag.AprilTagFieldLayout;
 import edu.wpi.first.epilogue.Logged;
 import edu.wpi.first.epilogue.Logged.Strategy;
+import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Pose3d;
 import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.math.geometry.Rotation3d;
 import edu.wpi.first.math.geometry.Transform3d;
+import edu.wpi.first.math.geometry.Translation2d;
+import edu.wpi.first.math.geometry.Translation3d;
 import edu.wpi.first.networktables.NetworkTableInstance;
 import frc.lib.FaultLogger;
 import frc.robot.Constants.FieldConstants;
 import frc.robot.Constants.VisionConstants;
 import frc.robot.Robot;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 import java.util.function.Function;
@@ -26,6 +31,7 @@ import org.photonvision.PhotonPoseEstimator;
 import org.photonvision.PhotonPoseEstimator.PoseStrategy;
 import org.photonvision.simulation.PhotonCameraSim;
 import org.photonvision.simulation.SimCameraProperties;
+import org.photonvision.targeting.PhotonTrackedTarget;
 
 /** Handles pose estimation coming from a single PhotonVision camera. */
 @Logged(strategy = Strategy.OPT_IN)
@@ -34,15 +40,13 @@ public class VisionPoseEstimator implements AutoCloseable {
   @Logged(name = "Camera Name")
   public final String camName;
 
-  /**
-   * The ambiguity threshold on this camera to limit incoming vision estimates (used for filtering).
-   */
+  /** The ambiguity threshold on this camera for single-tag estimates. */
   @Logged(name = "Ambiguity Threshold")
   public final double ambiguityThreshold;
 
   /**
    * Std devs factor based on this specific camera, increase it if the resolution is lowered on this
-   * camera, if the fov is high, if the ambiguity threshold is increased, etc.
+   * camera, if the fov is high, etc.
    */
   @Logged(name = "Camera Std Devs Factor")
   public final double cameraStdDevsFactor;
@@ -55,7 +59,7 @@ public class VisionPoseEstimator implements AutoCloseable {
   @Logged(name = "Single Tag Max Distance")
   public final double singleTagMaxDistance;
 
-  /** Maximum allowed distance for multitag estimates. */
+  /** Maximum allowed distance for multi-tag estimates. */
   @Logged(name = "Multi-Tag Max Distance")
   public final double multiTagMaxDistance;
 
@@ -71,20 +75,22 @@ public class VisionPoseEstimator implements AutoCloseable {
 
   private final PhotonPoseEstimator _poseEstimator;
 
-  private final String _logPath;
-
   // new estimates from last update call
-  private List<VisionPoseEstimate> _newEstimates = new ArrayList<>();
+  private final List<VisionPoseEstimate> _newEstimates = new ArrayList<>();
+
+  private final String _estimateLogPath;
+
+  private final Function<Double, Rotation2d> _gyroAtTime;
 
   /** Constants for a single vision pose estimator camera. */
   public record VisionPoseEstimatorConstants(
       /** The NT name of the camera. */
       String camName,
 
-      /** The robot to camera transform */
+      /** The robot to camera transform. */
       Transform3d robotToCam,
 
-      /** The ambiguity threshold for filtering */
+      /** The ambiguity threshold for filtering. */
       double ambiguityThreshold,
 
       /** The camera's std devs factor. */
@@ -93,24 +99,43 @@ public class VisionPoseEstimator implements AutoCloseable {
       /** Maximum allowed distance for single tag estimates. */
       double singleTagMaxDistance,
 
-      /** Maximum allowed distance for multitag estimates. */
+      /** Maximum allowed distance for multi-tag estimates. */
       double multiTagMaxDistance) {}
+
+  public record SingleTagEstimate(
+      /** The pose calculated from the trig estimation. */
+      Pose3d pose,
+
+      /** The detected tag id. */
+      int tag,
+
+      /** The timestamp of when the frame was made. */
+      double timestamp,
+
+      /** The distance from this tag. */
+      double distance) {}
 
   /** Represents a single vision pose estimate. */
   public record VisionPoseEstimate(
-      /** The pose to add into the estimator. */
+      /** The disambiguated pose to add into the estimator. */
       Pose3d pose,
 
-      /** The timestamp of when the frame was taken. (-1 when no tags). */
+      /** The timestamp of when the frame was taken (-1 when no tags). */
       double timestamp,
 
       /** The ambiguity of this measurement (-1 when no tags or when multi-tag). */
       double ambiguity,
 
+      /** Alternate pose during single-tag measurements that arises from ambiguity. */
+      Pose3d altPose,
+
       /** The detected tag ids in this measurement. */
       int[] detectedTags,
 
-      /** The average distance from the tag(s) (-1 when no tags). */
+      /** The array of SingleTagEstimtes recived from trig calulcations */
+      SingleTagEstimate[] singleTagEstimates,
+
+      /** The average distance from the tag(s) in 3D space (-1 when no tags). */
       double avgTagDistance,
 
       /**
@@ -154,9 +179,10 @@ public class VisionPoseEstimator implements AutoCloseable {
    * Builds a new vision pose estimator from a single camera constants. NT instance is set to
    * default, and the field layout is set to whatever is in the constants file.
    */
-  public static VisionPoseEstimator buildFromConstants(VisionPoseEstimatorConstants camConstants) {
+  public static VisionPoseEstimator buildFromConstants(
+      VisionPoseEstimatorConstants camConstants, Function<Double, Rotation2d> gyroAtTime) {
     return buildFromConstants(
-        camConstants, NetworkTableInstance.getDefault(), FieldConstants.fieldLayout);
+        camConstants, NetworkTableInstance.getDefault(), FieldConstants.tagLayout, gyroAtTime);
   }
 
   /**
@@ -166,7 +192,8 @@ public class VisionPoseEstimator implements AutoCloseable {
   public static VisionPoseEstimator buildFromConstants(
       VisionPoseEstimatorConstants camConstants,
       NetworkTableInstance ntInst,
-      AprilTagFieldLayout fieldLayout) {
+      AprilTagFieldLayout fieldLayout,
+      Function<Double, Rotation2d> gyroAtTime) {
     return new VisionPoseEstimator(
         camConstants.camName,
         camConstants.robotToCam,
@@ -175,10 +202,11 @@ public class VisionPoseEstimator implements AutoCloseable {
         camConstants.ambiguityThreshold,
         camConstants.cameraStdDevsFactor,
         ntInst,
-        fieldLayout);
+        fieldLayout,
+        gyroAtTime);
   }
 
-  /** Creates a new VisionPoseEstimator (all params are members that are javadocced already). */
+  /** Creates a new VisionPoseEstimator. */
   public VisionPoseEstimator(
       String camName,
       Transform3d robotToCam,
@@ -187,7 +215,8 @@ public class VisionPoseEstimator implements AutoCloseable {
       double ambiguityThreshold,
       double cameraStdDevsFactor,
       NetworkTableInstance ntInst,
-      AprilTagFieldLayout fieldLayout) {
+      AprilTagFieldLayout fieldLayout,
+      Function<Double, Rotation2d> gyroAtTime) {
     this.camName = camName;
     this.robotToCam = robotToCam;
     this.ambiguityThreshold = ambiguityThreshold;
@@ -203,12 +232,16 @@ public class VisionPoseEstimator implements AutoCloseable {
     // this is actually "closest-to-gyro" in the robot code
     _poseEstimator.setMultiTagFallbackStrategy(PoseStrategy.LOWEST_AMBIGUITY);
 
-    _logPath = "Swerve/" + camName + "/Estimate/";
+    _estimateLogPath = "Swerve/" + camName + "/Estimate/";
+
+    _gyroAtTime = gyroAtTime;
 
     FaultLogger.register(_camera);
 
     if (Robot.isSimulation()) {
       var cameraProps = new SimCameraProperties();
+
+      cameraProps.setCalibError(0.01, 0.001);
 
       _cameraSim = new PhotonCameraSim(_camera, cameraProps, fieldLayout);
     } else {
@@ -226,13 +259,47 @@ public class VisionPoseEstimator implements AutoCloseable {
 
   // appends a new estimate to the log file
   private void logNewEstimate(VisionPoseEstimate estimate) {
-    DogLog.log(_logPath + "Pose", estimate.pose);
-    DogLog.log(_logPath + "Timestamp", estimate.timestamp);
-    DogLog.log(_logPath + "Ambiguity", estimate.ambiguity);
-    DogLog.log(_logPath + "Detected Tags", estimate.detectedTags);
-    DogLog.log(_logPath + "Average Tag Distance", estimate.avgTagDistance);
-    DogLog.log(_logPath + "Std Devs", estimate.stdDevs);
-    DogLog.log(_logPath + "Is Valid", estimate.isValid);
+    DogLog.log(_estimateLogPath + "Pose", estimate.pose);
+    DogLog.log(_estimateLogPath + "Timestamp", estimate.timestamp);
+    DogLog.log(_estimateLogPath + "Ambiguity", estimate.ambiguity);
+    DogLog.log(_estimateLogPath + "Alternate Pose", estimate.altPose);
+    DogLog.log(_estimateLogPath + "Detected Tags", estimate.detectedTags);
+    DogLog.log(
+        _estimateLogPath + "Single Tag Trig Estimates",
+        Arrays.stream(estimate.singleTagEstimates).map(e -> e.pose).toArray(Pose3d[]::new));
+    DogLog.log(_estimateLogPath + "Average Tag Distance", estimate.avgTagDistance);
+    DogLog.log(_estimateLogPath + "Std Devs", estimate.stdDevs);
+    DogLog.log(_estimateLogPath + "Is Valid", estimate.isValid);
+  }
+
+  /** Gives a single tag estimate using trig. */
+  private SingleTagEstimate getSingleTagEstimate(
+      PhotonTrackedTarget target, Rotation2d gyroHeading, double timestamp) {
+    Translation2d camToTagVector =
+        new Translation3d(
+                target.getBestCameraToTarget().getTranslation().getNorm(),
+                new Rotation3d(
+                    0, -Math.toRadians(target.getPitch()), -Math.toRadians(target.getYaw())))
+            .rotateBy(robotToCam.getRotation())
+            .toTranslation2d()
+            .rotateBy(gyroHeading);
+
+    var tagPose = FieldConstants.tagLayout.getTagPose(target.getFiducialId()).get().toPose2d();
+
+    Translation2d fieldToCameraTranslation =
+        tagPose.getTranslation().plus(camToTagVector.unaryMinus());
+
+    Translation2d camToRobotTranslation =
+        robotToCam.getTranslation().toTranslation2d().unaryMinus().rotateBy(gyroHeading);
+
+    Pose2d robotPose =
+        new Pose2d(fieldToCameraTranslation.plus(camToRobotTranslation), gyroHeading);
+
+    return new SingleTagEstimate(
+        new Pose3d(robotPose),
+        target.getFiducialId(),
+        timestamp,
+        robotPose.getTranslation().getDistance(tagPose.getTranslation()));
   }
 
   /**
@@ -247,10 +314,12 @@ public class VisionPoseEstimator implements AutoCloseable {
   private VisionPoseEstimate processEstimate(EstimatedRobotPose estimate, Rotation2d gyroHeading) {
     // estimate properties
     Pose3d estimatedPose = estimate.estimatedPose;
+    Pose3d altPose = estimatedPose;
     double timestamp = estimate.timestampSeconds;
     double ambiguity = -1;
     int tagAmount = estimate.targetsUsed.size();
     int[] detectedTags = new int[tagAmount];
+    SingleTagEstimate[] singleTagEstimates = new SingleTagEstimate[tagAmount];
     double avgTagDistance = 0;
     double[] stdDevs = new double[] {-1, -1, -1};
     boolean isValid = false;
@@ -267,23 +336,32 @@ public class VisionPoseEstimator implements AutoCloseable {
       Pose3d betterReprojPose = tagPose.transformBy(target.getBestCameraToTarget().inverse());
       Pose3d worseReprojPose = tagPose.transformBy(target.getAlternateCameraToTarget().inverse());
 
-      betterReprojPose = betterReprojPose.transformBy(robotToCam.inverse());
-      worseReprojPose = worseReprojPose.transformBy(robotToCam.inverse());
+      var robotToCamInverse = robotToCam.inverse();
+
+      betterReprojPose = betterReprojPose.transformBy(robotToCamInverse);
+      worseReprojPose = worseReprojPose.transformBy(robotToCamInverse);
 
       // check which of the poses is closer to the correct gyro heading
       if (Math.abs(betterReprojPose.toPose2d().getRotation().minus(gyroHeading).getDegrees())
           < Math.abs(worseReprojPose.toPose2d().getRotation().minus(gyroHeading).getDegrees())) {
         estimatedPose = betterReprojPose;
+        altPose = worseReprojPose;
       } else {
         estimatedPose = worseReprojPose;
+        altPose = betterReprojPose;
       }
     }
 
     // ---- FILTER ----
     // get tag distance
     for (int i = 0; i < tagAmount; i++) {
-      int tagId = estimate.targetsUsed.get(i).getFiducialId();
+      PhotonTrackedTarget target = estimate.targetsUsed.get(i);
+
+      int tagId = target.getFiducialId();
       Pose3d tagPose = _poseEstimator.getFieldTags().getTagPose(tagId).get();
+
+      singleTagEstimates[i] = getSingleTagEstimate(target, gyroHeading, timestamp);
+
       detectedTags[i] = tagId;
       avgTagDistance += tagPose.getTranslation().getDistance(estimatedPose.getTranslation());
     }
@@ -328,25 +406,28 @@ public class VisionPoseEstimator implements AutoCloseable {
     }
 
     return new VisionPoseEstimate(
-        estimatedPose, timestamp, ambiguity, detectedTags, avgTagDistance, stdDevs, isValid);
+        estimatedPose,
+        timestamp,
+        ambiguity,
+        altPose,
+        detectedTags,
+        singleTagEstimates,
+        avgTagDistance,
+        stdDevs,
+        isValid);
   }
 
   /** Reads from the camera and generates an array of new latest {@link VisionPoseEstimate}(s). */
-  public void update(Function<Double, Rotation2d> headingAtTime) {
+  public void update() {
     _newEstimates.clear(); // reset new estimates
 
     var results = _camera.getAllUnreadResults();
-
-    DogLog.log(
-        "Swerve/" + camName + "/Camera Result #",
-        results.size()); // also to check if cam's connected
 
     for (var result : results) {
       var est = _poseEstimator.update(result);
 
       if (est.isPresent()) {
-        var newEstimate =
-            processEstimate(est.get(), headingAtTime.apply(est.get().timestampSeconds));
+        var newEstimate = processEstimate(est.get(), _gyroAtTime.apply(est.get().timestampSeconds));
         _newEstimates.add(newEstimate);
 
         logNewEstimate(newEstimate);

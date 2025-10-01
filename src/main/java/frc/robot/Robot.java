@@ -17,11 +17,11 @@ import edu.wpi.first.epilogue.Logged.Strategy;
 import edu.wpi.first.epilogue.logging.EpilogueBackend;
 import edu.wpi.first.epilogue.logging.FileBackend;
 import edu.wpi.first.epilogue.logging.NTEpilogueBackend;
-import edu.wpi.first.math.geometry.Pose2d;
-import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.networktables.NetworkTableInstance;
+import edu.wpi.first.util.ClassPreloader;
 import edu.wpi.first.wpilibj.DataLogManager;
 import edu.wpi.first.wpilibj.DriverStation;
+import edu.wpi.first.wpilibj.PowerDistribution;
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
@@ -31,7 +31,6 @@ import frc.lib.InputStream;
 import frc.robot.Constants.Ports;
 import frc.robot.Constants.SwerveConstants;
 import frc.robot.commands.Autos;
-import frc.robot.commands.WheelRadiusCharacterization;
 import frc.robot.generated.TunerConstants;
 import frc.robot.subsystems.Swerve;
 
@@ -51,7 +50,6 @@ public class Robot extends TimedRobot {
   private final Swerve _swerve = TunerConstants.createDrivetrain();
 
   private final Autos _autos = new Autos(_swerve);
-  private final AutoChooser _autoChooser = new AutoChooser();
 
   private final NetworkTableInstance _ntInst;
 
@@ -74,11 +72,12 @@ public class Robot extends TimedRobot {
 
     // set up loggers
     DogLog.setOptions(DogLog.getOptions().withCaptureDs(true));
+    DogLog.setPdh(new PowerDistribution());
 
     setFileOnly(false); // file-only once connected to fms
 
     Epilogue.bind(this);
-    SignalLogger.start();
+    SignalLogger.start(); // TODO: log canivore can data as well
 
     DriverStation.silenceJoystickConnectionWarning(isSimulation());
 
@@ -89,22 +88,29 @@ public class Robot extends TimedRobot {
     SmartDashboard.putData(
         "Robot Self Check",
         sequence(
-                runOnce(() -> DataLogManager.log("Robot Self Check Started!")),
+                runOnce(() -> DataLogManager.log("Robot Self Check Started")),
                 _swerve.fullSelfCheck(),
-                runOnce(() -> DataLogManager.log("Robot Self Check Successful!")))
+                runOnce(() -> DataLogManager.log("Robot Self Check Finished")))
             .withName("Robot Self Check"));
 
-    SmartDashboard.putData(new WheelRadiusCharacterization(_swerve));
     SmartDashboard.putData(runOnce(FaultLogger::clear).withName("Clear Faults"));
 
-    // set up auto chooser
-    _autoChooser.addRoutine("Simple Trajectory", _autos::simpleTrajectory);
-
-    SmartDashboard.putData("Auto Chooser", _autoChooser);
-
-    autonomous().whileTrue(_autoChooser.selectedCommandScheduler());
-
     addPeriodic(FaultLogger::update, 1);
+
+    AutoChooser chooser = new AutoChooser();
+
+    chooser.addRoutine("Example", _autos::example);
+
+    SmartDashboard.putData("Auto Chooser", chooser);
+
+    autonomous().whileTrue(chooser.selectedCommandScheduler());
+
+    // TODO: maybe isn't needed
+    ClassPreloader.preload(
+        "edu.wpi.first.math.geometry.Transform2d",
+        "edu.wpi.first.math.geometry.Twist2d",
+        "java.lang.FdLibm$Hypot",
+        "choreo.trajectory.Trajectory");
   }
 
   // set logging to be file only or not
@@ -137,10 +143,7 @@ public class Robot extends TimedRobot {
 
     _driverController.x().whileTrue(_swerve.brake());
     _driverController.a().onTrue(_swerve.toggleFieldOriented());
-
-    _driverController
-        .b()
-        .whileTrue(_swerve.driveTo(new Pose2d(10, 3, Rotation2d.fromDegrees(-150))));
+    _driverController.y().onTrue(_swerve.resetHeading());
   }
 
   /**

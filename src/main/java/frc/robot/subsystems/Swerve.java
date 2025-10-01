@@ -5,10 +5,9 @@
 package frc.robot.subsystems;
 
 import static edu.wpi.first.units.Units.*;
-import static edu.wpi.first.wpilibj2.command.Commands.*;
+import static edu.wpi.first.wpilibj2.command.Commands.sequence;
 
 import choreo.trajectory.SwerveSample;
-import com.ctre.phoenix6.SignalLogger;
 import com.ctre.phoenix6.Utils;
 import com.ctre.phoenix6.hardware.CANcoder;
 import com.ctre.phoenix6.hardware.TalonFX;
@@ -25,8 +24,6 @@ import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Pose3d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
-import edu.wpi.first.math.kinematics.SwerveDriveKinematics;
-import edu.wpi.first.math.kinematics.SwerveModuleState;
 import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
@@ -34,7 +31,6 @@ import edu.wpi.first.wpilibj.Notifier;
 import edu.wpi.first.wpilibj.RobotController;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Subsystem;
-import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
 import frc.lib.FaultLogger;
 import frc.lib.FaultsTable;
 import frc.lib.FaultsTable.Fault;
@@ -44,21 +40,34 @@ import frc.lib.SelfChecked;
 import frc.robot.Constants;
 import frc.robot.Constants.FieldConstants;
 import frc.robot.Constants.SwerveConstants;
-import frc.robot.Constants.VisionConstants;
 import frc.robot.Robot;
 import frc.robot.generated.TunerConstants.TunerSwerveDrivetrain;
 import frc.robot.utils.HolonomicController;
-import frc.robot.utils.SysId;
 import frc.robot.utils.VisionPoseEstimator;
 import frc.robot.utils.VisionPoseEstimator.VisionPoseEstimate;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Supplier;
 import org.photonvision.simulation.VisionSystemSim;
 
 @Logged(strategy = Strategy.OPT_IN)
 public class Swerve extends TunerSwerveDrivetrain implements Subsystem, SelfChecked {
+  // teleop requests
+  private final RobotCentric _robotCentricRequest = new RobotCentric();
+  private final FieldCentric _fieldCentricRequest = new FieldCentric();
+
+  private final SwerveDriveBrake _brakeRequest = new SwerveDriveBrake();
+
+  // auton request for choreo / pose controller
+  private final ApplyFieldSpeeds _fieldSpeedsRequest = new ApplyFieldSpeeds();
+
+  private final HolonomicController _poseController = new HolonomicController();
+
+  private double _lastSimTime = 0;
+  private Notifier _simNotifier;
+
   // faults and the table containing them
   private Set<Fault> _faults = new HashSet<Fault>();
   private FaultsTable _faultsTable =
@@ -67,72 +76,6 @@ public class Swerve extends TunerSwerveDrivetrain implements Subsystem, SelfChec
           getName() + " Faults"); // TODO: watch out unit tests
 
   private boolean _hasError = false;
-
-  // teleop requests
-  private final RobotCentric _robotCentricRequest = new RobotCentric();
-  private final FieldCentric _fieldCentricRequest = new FieldCentric();
-
-  private final SwerveDriveBrake _brakeRequest = new SwerveDriveBrake();
-
-  // auton request for choreo
-  private final ApplyFieldSpeeds _fieldSpeedsRequest = new ApplyFieldSpeeds();
-
-  // sysid requests
-  private final SysIdSwerveTranslation _translationSysIdRequest = new SysIdSwerveTranslation();
-  private final SysIdSwerveSteerGains _steerSysIdRequest = new SysIdSwerveSteerGains();
-  private final SysIdSwerveRotation _rotationSysIdRequest =
-      new SysIdSwerveRotation(); // how does this work?
-
-  // SysId routine for characterizing translation. This is used to find PID gains for the drive
-  // motors.
-  private final SysIdRoutine _sysIdRoutineTranslation =
-      new SysIdRoutine(
-          new SysIdRoutine.Config(
-              null, // Use default ramp rate (1 V/s)
-              Volts.of(4), // Reduce dynamic step voltage to 4 V to prevent brownout
-              null, // Use default timeout (10 s)
-              state ->
-                  SignalLogger.writeString(
-                      "Swerve SysId Translation Routine State", state.toString())),
-          new SysIdRoutine.Mechanism(
-              volts -> setControl(_translationSysIdRequest.withVolts(volts)), null, this));
-
-  // SysId routine for characterizing steer. This is used to find PID gains for the steer motors.
-  private final SysIdRoutine _sysIdRoutineSteer =
-      new SysIdRoutine(
-          new SysIdRoutine.Config(
-              null, // Use default ramp rate (1 V/s)
-              Volts.of(7), // Use dynamic voltage of 7 V
-              null, // Use default timeout (10 s)
-              state ->
-                  SignalLogger.writeString("Swerve SysId Steer Routine State", state.toString())),
-          new SysIdRoutine.Mechanism(
-              volts -> setControl(_steerSysIdRequest.withVolts(volts)), null, this));
-
-  // SysId routine for characterizing rotation.
-  private final SysIdRoutine _sysIdRoutineRotation =
-      new SysIdRoutine(
-          new SysIdRoutine.Config(
-              // This is in radians per second², but SysId only supports "volts per second"
-              Volts.of(Math.PI / 6).per(Second),
-              // This is in radians per second, but SysId only supports "volts"
-              Volts.of(Math.PI),
-              null, // Use default timeout (10 s)
-              state ->
-                  SignalLogger.writeString(
-                      "Swerve SysId Rotation Routine State", state.toString())),
-          new SysIdRoutine.Mechanism(
-              output -> {
-                // output is actually radians per second, but SysId only supports "volts"
-                setControl(_rotationSysIdRequest.withRotationalRate(output.in(Volts)));
-                // also log the requested output for SysId
-                SignalLogger.writeDouble("Swerve Rotational Rate", output.in(Volts));
-              },
-              null,
-              this));
-
-  private double _lastSimTime = 0;
-  private Notifier _simNotifier;
 
   @Logged(name = "Driver Chassis Speeds")
   private final ChassisSpeeds _driverChassisSpeeds = new ChassisSpeeds();
@@ -144,16 +87,11 @@ public class Swerve extends TunerSwerveDrivetrain implements Subsystem, SelfChec
   private boolean _isOpenLoop = true;
 
   @Logged(name = "Ignore Vision Estimates")
-  private boolean _ignoreVisionEstimates = true; // for sim for now
+  private boolean _ignoreVisionEstimates = false;
 
-  private HolonomicController _poseController = new HolonomicController();
+  private final List<VisionPoseEstimator> _cameras = List.of();
 
-  @Logged(name = VisionConstants.blueArducamName)
-  private final VisionPoseEstimator _blueArducam =
-      VisionPoseEstimator.buildFromConstants(VisionConstants.blueArducam);
-
-  // for easy iteration with multiple cameras
-  private final List<VisionPoseEstimator> _cameras = List.of(_blueArducam);
+  private final List<VisionPoseEstimate> _newEstimates = new ArrayList<>();
 
   private final List<VisionPoseEstimate> _acceptedEstimates = new ArrayList<>();
   private final List<VisionPoseEstimate> _rejectedEstimates = new ArrayList<>();
@@ -162,7 +100,7 @@ public class Swerve extends TunerSwerveDrivetrain implements Subsystem, SelfChec
 
   private final VisionSystemSim _visionSystemSim;
 
-  private boolean _hasAppliedDriverPerspective;
+  private boolean _hasAppliedDriverPerspective = false;
 
   /**
    * Creates a new CommandSwerveDrivetrain.
@@ -205,20 +143,13 @@ public class Swerve extends TunerSwerveDrivetrain implements Subsystem, SelfChec
           DogLog.log("Swerve/Odometry Period", state.OdometryPeriod);
         });
 
-    _poseController.setTolerance(Meters.of(0.1), Rotation2d.fromDegrees(0));
-
-    // display all sysid routines
-    SysId.displayRoutine("Swerve Translation", _sysIdRoutineTranslation);
-    SysId.displayRoutine("Swerve Steer", _sysIdRoutineSteer);
-    SysId.displayRoutine("Swerve Rotation", _sysIdRoutineRotation);
-
     registerFallibles();
 
     if (Robot.isSimulation()) {
       startSimThread();
 
-      _visionSystemSim = new VisionSystemSim("Vision System Sim");
-      _visionSystemSim.addAprilTags(FieldConstants.fieldLayout);
+      _visionSystemSim = new VisionSystemSim("main");
+      _visionSystemSim.addAprilTags(FieldConstants.tagLayout);
 
       _cameras.forEach(cam -> _visionSystemSim.addCamera(cam.getCameraSim(), cam.robotToCam));
     } else {
@@ -272,6 +203,7 @@ public class Swerve extends TunerSwerveDrivetrain implements Subsystem, SelfChec
   }
 
   /** Returns whether this subsystem has errors (has fault type of error). */
+  @Logged(name = "Has Error")
   public final boolean hasError() {
     return _hasError;
   }
@@ -326,6 +258,21 @@ public class Swerve extends TunerSwerveDrivetrain implements Subsystem, SelfChec
     return run(() -> setControl(_brakeRequest)).withName("Brake");
   }
 
+  /** Resets the heading to face away from the alliance wall. */
+  public Command resetHeading() {
+    return runOnce(
+        () -> {
+          Rotation2d rotation =
+              DriverStation.getAlliance()
+                  .map(
+                      allianceColor ->
+                          allianceColor == Alliance.Red ? Rotation2d.k180deg : Rotation2d.kZero)
+                  .orElse(Rotation2d.kZero);
+
+          resetRotation(rotation);
+        });
+  }
+
   /**
    * Creates a new Command that drives the chassis.
    *
@@ -352,26 +299,6 @@ public class Swerve extends TunerSwerveDrivetrain implements Subsystem, SelfChec
     _driverChassisSpeeds.vxMetersPerSecond = velX;
     _driverChassisSpeeds.vyMetersPerSecond = velY;
     _driverChassisSpeeds.omegaRadiansPerSecond = velOmega;
-
-    // go through a couple of steps to ensure that input speeds are actually achievable
-    ChassisSpeeds tempSpeeds = _driverChassisSpeeds;
-    SwerveModuleState[] tempStates;
-
-    // TODO: this might be too many memory allocations
-
-    if (_isFieldOriented)
-      tempSpeeds = ChassisSpeeds.fromFieldRelativeSpeeds(tempSpeeds, getHeading());
-
-    tempStates = getKinematics().toSwerveModuleStates(tempSpeeds);
-    SwerveDriveKinematics.desaturateWheelSpeeds(tempStates, SwerveConstants.maxTranslationalSpeed);
-    tempSpeeds = getKinematics().toChassisSpeeds(tempStates);
-
-    if (_isFieldOriented)
-      tempSpeeds = ChassisSpeeds.fromRobotRelativeSpeeds(tempSpeeds, getHeading());
-
-    velX = tempSpeeds.vxMetersPerSecond;
-    velY = tempSpeeds.vyMetersPerSecond;
-    velOmega = tempSpeeds.omegaRadiansPerSecond;
 
     if (_isFieldOriented) {
       setControl(
@@ -403,8 +330,6 @@ public class Swerve extends TunerSwerveDrivetrain implements Subsystem, SelfChec
 
     desiredSpeeds = _poseController.calculate(desiredSpeeds, desiredPose, getPose());
 
-    DogLog.log("Auto/Current Trajectory Desired Pose", desiredPose);
-
     setControl(
         _fieldSpeedsRequest
             .withSpeeds(desiredSpeeds)
@@ -412,20 +337,28 @@ public class Swerve extends TunerSwerveDrivetrain implements Subsystem, SelfChec
             .withWheelForceFeedforwardsY(sample.moduleForcesY()));
   }
 
-  /** Drives the robot in a straight line to some given goal pose. */
+  /**
+   * Drives the robot in a straight line to some given goal pose. Uses the pose estimator for robot
+   * pose.
+   */
   public Command driveTo(Pose2d goalPose) {
+    return driveTo(goalPose, this::getPose);
+  }
+
+  /** Drives the robot in a straight line to some given goal pose. */
+  private Command driveTo(Pose2d goalPose, Supplier<Pose2d> robotPose) {
     return run(() -> {
-          ChassisSpeeds speeds = _poseController.calculate(getPose(), goalPose);
+          ChassisSpeeds speeds = _poseController.calculate(robotPose.get());
 
           setControl(_fieldSpeedsRequest.withSpeeds(speeds));
         })
         .beforeStarting(
             () ->
                 _poseController.reset(
-                    getPose(),
+                    robotPose.get(),
                     goalPose,
                     ChassisSpeeds.fromRobotRelativeSpeeds(getChassisSpeeds(), getHeading())))
-        .until(_poseController::atGoal)
+        .until(_poseController::isFinished)
         .withName("Drive To");
   }
 
@@ -439,9 +372,9 @@ public class Swerve extends TunerSwerveDrivetrain implements Subsystem, SelfChec
     return getPose().getRotation();
   }
 
-  /** Returns the robot's estimated rotation at the given timestamp. */
+  /** Returns the robot's estimated rotation at the given timestamp (FPGA time). */
   public Rotation2d getHeadingAtTime(double timestamp) {
-    return samplePoseAt(timestamp).orElse(getPose()).getRotation();
+    return samplePoseAt(Utils.fpgaToCurrentTime(timestamp)).orElse(getPose()).getRotation();
   }
 
   /** Wrapper for getting current robot-relative chassis speeds. */
@@ -451,28 +384,33 @@ public class Swerve extends TunerSwerveDrivetrain implements Subsystem, SelfChec
 
   // updates pose estimator with vision
   private void updateVisionPoseEstimates() {
+    _newEstimates.clear();
+
     _acceptedEstimates.clear();
     _rejectedEstimates.clear();
 
     _detectedTags.clear();
 
     for (VisionPoseEstimator cam : _cameras) {
-      cam.update(this::getHeadingAtTime);
+      cam.update();
 
       var estimates = cam.getNewEstimates();
 
-      // process estimates
+      // add estimates to arrays and update detected tags
       estimates.forEach(
           (estimate) -> {
             // add all detected tag poses
             for (int id : estimate.detectedTags()) {
-              FieldConstants.fieldLayout.getTagPose(id).ifPresent(pose -> _detectedTags.add(pose));
+              FieldConstants.tagLayout.getTagPose(id).ifPresent(pose -> _detectedTags.add(pose));
             }
 
             // add robot poses to their corresponding arrays
             if (estimate.isValid()) _acceptedEstimates.add(estimate);
             else _rejectedEstimates.add(estimate);
           });
+
+      _newEstimates.addAll(_acceptedEstimates);
+      _newEstimates.addAll(_rejectedEstimates);
     }
   }
 
@@ -508,7 +446,7 @@ public class Swerve extends TunerSwerveDrivetrain implements Subsystem, SelfChec
             var stdDevs = e.stdDevs();
             addVisionMeasurement(
                 e.pose().toPose2d(),
-                e.timestamp(),
+                Utils.fpgaToCurrentTime(e.timestamp()),
                 VecBuilder.fill(stdDevs[0], stdDevs[1], stdDevs[2]));
           });
     }
@@ -516,7 +454,7 @@ public class Swerve extends TunerSwerveDrivetrain implements Subsystem, SelfChec
 
   @Override
   public void simulationPeriodic() {
-    _visionSystemSim.update(getPose()); // TODO: this might require a seperate wheel-only odom
+    _visionSystemSim.update(getPose()); // TODO: odom only?
   }
 
   // TODO: add self check routines
@@ -537,8 +475,6 @@ public class Swerve extends TunerSwerveDrivetrain implements Subsystem, SelfChec
   @Override
   public void close() {
     super.close();
-
-    _cameras.forEach(cam -> cam.close());
 
     _simNotifier.close();
   }

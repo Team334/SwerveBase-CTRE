@@ -1,20 +1,16 @@
-// Copyright (c) FIRST and other WPILib contributors.
-// Open Source Software; you can modify and/or share it under the terms of
-// the WPILib BSD license file in the root directory of this project.
-
 package frc.robot.commands;
-
-import static edu.wpi.first.wpilibj2.command.Commands.*;
 
 import choreo.auto.AutoFactory;
 import choreo.auto.AutoRoutine;
+import choreo.auto.AutoTrajectory;
 import dev.doglog.DogLog;
+import edu.wpi.first.wpilibj2.command.Commands;
 import frc.robot.subsystems.Swerve;
 
 public class Autos {
-  private final Swerve _swerve;
-
   private final AutoFactory _factory;
+
+  private final Swerve _swerve;
 
   public Autos(Swerve swerve) {
     _swerve = swerve;
@@ -27,8 +23,6 @@ public class Autos {
             true,
             _swerve,
             (traj, isActive) -> {
-              traj = traj.flipped();
-
               DogLog.log("Auto/Current Trajectory", traj.getPoses());
               DogLog.log("Auto/Current Trajectory Name", traj.name());
               DogLog.log("Auto/Current Trajectory Duration", traj.getTotalTime());
@@ -36,11 +30,12 @@ public class Autos {
             });
   }
 
-  public AutoRoutine simpleTrajectory() {
-    var routine = _factory.newRoutine("Simple Trajectory");
-    var trajectory = routine.trajectory("simpleTrajectory");
+  public AutoRoutine example() {
+    AutoRoutine routine = _factory.newRoutine("example");
 
-    routine.active().onTrue(sequence(trajectory.resetOdometry(), trajectory.cmd()));
+    AutoTrajectory exampleTraj = routine.trajectory("example");
+
+    routine.active().onTrue(Commands.sequence(exampleTraj.resetOdometry(), exampleTraj.cmd()));
 
     return routine;
   }
