@@ -25,6 +25,8 @@ import frc.robot.generated.TunerConstants;
  * constants are needed, to reduce verbosity.
  */
 public final class Constants {
+  public static final String canivore = "canivore";
+
   public static final Frequency simUpdateFrequency = Hertz.of(200);
 
   public static class Ports {

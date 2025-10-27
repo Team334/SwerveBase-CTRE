@@ -269,7 +269,7 @@ public class Swerve extends TunerSwerveDrivetrain implements Subsystem, SelfChec
                           allianceColor == Alliance.Red ? Rotation2d.k180deg : Rotation2d.kZero)
                   .orElse(Rotation2d.kZero);
 
-          resetRotation(rotation);
+          resetPose(new Pose2d(getPose().getTranslation(), rotation));
         });
   }
 
@@ -337,26 +337,23 @@ public class Swerve extends TunerSwerveDrivetrain implements Subsystem, SelfChec
             .withWheelForceFeedforwardsY(sample.moduleForcesY()));
   }
 
-  /**
-   * Drives the robot in a straight line to some given goal pose. Uses the pose estimator for robot
-   * pose.
-   */
+  /** Drives the robot in a straight line to some given goal pose. */
   public Command driveTo(Pose2d goalPose) {
-    return driveTo(goalPose, this::getPose);
+    return driveTo(() -> goalPose);
   }
 
   /** Drives the robot in a straight line to some given goal pose. */
-  private Command driveTo(Pose2d goalPose, Supplier<Pose2d> robotPose) {
+  public Command driveTo(Supplier<Pose2d> goalPose) {
     return run(() -> {
-          ChassisSpeeds speeds = _poseController.calculate(robotPose.get());
+          ChassisSpeeds speeds = _poseController.calculate(getPose());
 
           setControl(_fieldSpeedsRequest.withSpeeds(speeds));
         })
         .beforeStarting(
             () ->
                 _poseController.reset(
-                    robotPose.get(),
-                    goalPose,
+                    getPose(),
+                    goalPose.get(),
                     ChassisSpeeds.fromRobotRelativeSpeeds(getChassisSpeeds(), getHeading())))
         .until(_poseController::isFinished)
         .withName("Drive To");
@@ -416,6 +413,8 @@ public class Swerve extends TunerSwerveDrivetrain implements Subsystem, SelfChec
 
   @Override
   public void periodic() {
+    DogLog.time("Timing/Swerve/periodic()");
+
     updateVisionPoseEstimates();
 
     if (!_hasAppliedDriverPerspective || DriverStation.isDisabled()) {
@@ -450,6 +449,8 @@ public class Swerve extends TunerSwerveDrivetrain implements Subsystem, SelfChec
                 VecBuilder.fill(stdDevs[0], stdDevs[1], stdDevs[2]));
           });
     }
+
+    DogLog.timeEnd("Timing/Swerve/periodic()");
   }
 
   @Override

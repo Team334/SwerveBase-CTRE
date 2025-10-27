@@ -21,8 +21,9 @@ import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.util.ClassPreloader;
 import edu.wpi.first.wpilibj.DataLogManager;
 import edu.wpi.first.wpilibj.DriverStation;
-import edu.wpi.first.wpilibj.PowerDistribution;
+import edu.wpi.first.wpilibj.IterativeRobotBase;
 import edu.wpi.first.wpilibj.TimedRobot;
+import edu.wpi.first.wpilibj.Watchdog;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
@@ -33,6 +34,7 @@ import frc.robot.Constants.SwerveConstants;
 import frc.robot.commands.Autos;
 import frc.robot.generated.TunerConstants;
 import frc.robot.subsystems.Swerve;
+import java.lang.reflect.Field;
 
 /**
  * The methods in this class are called automatically corresponding to each mode, as described in
@@ -72,7 +74,7 @@ public class Robot extends TimedRobot {
 
     // set up loggers
     DogLog.setOptions(DogLog.getOptions().withCaptureDs(true));
-    DogLog.setPdh(new PowerDistribution());
+    // DogLog.setPdh(new PowerDistribution()); // TODO: get ts to work
 
     setFileOnly(false); // file-only once connected to fms
 
@@ -83,7 +85,7 @@ public class Robot extends TimedRobot {
 
     FaultLogger.setup(_ntInst);
 
-    configureBindings();
+    configureDriverBindings();
 
     SmartDashboard.putData(
         "Robot Self Check",
@@ -93,7 +95,8 @@ public class Robot extends TimedRobot {
                 runOnce(() -> DataLogManager.log("Robot Self Check Finished")))
             .withName("Robot Self Check"));
 
-    SmartDashboard.putData(runOnce(FaultLogger::clear).withName("Clear Faults"));
+    SmartDashboard.putData(
+        runOnce(FaultLogger::clear).ignoringDisable(true).withName("Clear Faults"));
 
     addPeriodic(FaultLogger::update, 1);
 
@@ -105,12 +108,34 @@ public class Robot extends TimedRobot {
 
     autonomous().whileTrue(chooser.selectedCommandScheduler());
 
-    // TODO: maybe isn't needed
+    preventChoreoDelay();
+  }
+
+  /** Watchdog config / class preloading needed to prevent choreo delay. */
+  private void preventChoreoDelay() {
+    // something slow about watchdog's printEpochs() when there's a loop overrun (Tracer
+    // printEpochs() DS writes?)
+    // more here: https://www.chiefdelphi.com/t/choreo-autonomous-loop-overruns/495597/21
+    final double loopOverrunWarningPeriod = 10;
+
+    try {
+      Field watchdogField = IterativeRobotBase.class.getDeclaredField("m_watchdog");
+      watchdogField.setAccessible(true);
+      Watchdog watchdog = (Watchdog) watchdogField.get(this);
+      watchdog.setTimeout(loopOverrunWarningPeriod);
+    } catch (Exception e) {
+      DriverStation.reportWarning("Failed to increase watchdog timeout", false);
+    }
+
+    CommandScheduler.getInstance().setPeriod(loopOverrunWarningPeriod);
+
+    // preloading long-loading classes used on auton init by choreo
     ClassPreloader.preload(
         "edu.wpi.first.math.geometry.Transform2d",
         "edu.wpi.first.math.geometry.Twist2d",
         "java.lang.FdLibm$Hypot",
-        "choreo.trajectory.Trajectory");
+        "choreo.trajectory.Trajectory",
+        "choreo.trajectory.SwerveSample");
   }
 
   // set logging to be file only or not
@@ -128,17 +153,20 @@ public class Robot extends TimedRobot {
             new NTEpilogueBackend(_ntInst), new FileBackend(DataLogManager.getLog()));
   }
 
-  private void configureBindings() {
+  private void configureDriverBindings() {
     _swerve.setDefaultCommand(
         _swerve.drive(
             InputStream.of(_driverController::getLeftY)
                 .negate()
+                .signedPow(2)
                 .scale(SwerveConstants.maxTranslationalSpeed.in(MetersPerSecond)),
             InputStream.of(_driverController::getLeftX)
                 .negate()
+                .signedPow(2)
                 .scale(SwerveConstants.maxTranslationalSpeed.in(MetersPerSecond)),
             InputStream.of(_driverController::getRightX)
                 .negate()
+                .signedPow(2)
                 .scale(SwerveConstants.maxAngularSpeed.in(RadiansPerSecond))));
 
     _driverController.x().whileTrue(_swerve.brake());
@@ -155,6 +183,8 @@ public class Robot extends TimedRobot {
    */
   @Override
   public void robotPeriodic() {
+    DogLog.time("Timing/Robot/robotPeriodic()");
+
     // Runs the Scheduler.  This is responsible for polling buttons, adding newly-scheduled
     // commands, running already-scheduled commands, removing finished or interrupted commands,
     // and running subsystem periodic() methods.  This must be called from the robot's periodic
@@ -166,6 +196,11 @@ public class Robot extends TimedRobot {
 
       _fileOnlySet = true;
     }
+
+    DogLog.timeEnd("Timing/Robot/robotPeriodic()");
+
+    DogLog.timeEnd("Timing/Robot/Full Loop");
+    DogLog.time("Timing/Robot/Full Loop");
   }
 
   @Override

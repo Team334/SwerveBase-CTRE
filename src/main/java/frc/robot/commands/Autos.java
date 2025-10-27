@@ -7,6 +7,7 @@ import dev.doglog.DogLog;
 import edu.wpi.first.wpilibj2.command.Commands;
 import frc.robot.subsystems.Swerve;
 
+/** All auton routines. */
 public class Autos {
   private final AutoFactory _factory;
 
