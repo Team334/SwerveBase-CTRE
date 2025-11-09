@@ -477,6 +477,8 @@ public class Swerve extends TunerSwerveDrivetrain implements Subsystem, SelfChec
   public void close() {
     super.close();
 
+    _cameras.forEach(c -> c.close());
+
     _simNotifier.close();
   }
 }

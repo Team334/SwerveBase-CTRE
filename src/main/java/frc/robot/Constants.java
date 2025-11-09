@@ -56,16 +56,15 @@ public final class Constants {
                 Math.pow(TunerConstants.FrontLeft.LocationX, 2)
                     + Math.pow(TunerConstants.FrontLeft.LocationY, 2)));
 
-    public static final LinearVelocity maxTranslationalSpeed = MetersPerSecond.of(3.632);
-    public static final AngularVelocity maxAngularSpeed = RadiansPerSecond.of(Math.PI);
+    public static final AngularVelocity angularSpeed = RadiansPerSecond.of(Math.PI);
 
-    // respecting wheel COF and max motor torque (this can be obtained from choreo probably)
-    public static final LinearAcceleration maxTranslationalAcceleration =
+    public static final LinearAcceleration translationalAcceleration =
         MetersPerSecondPerSecond.of(14.715);
-    public static final AngularAcceleration maxAngularAcceleration =
+    public static final AngularAcceleration angularAcceleration =
         RadiansPerSecondPerSecond.of(Math.PI * 3);
 
-    public static final LinearVelocity translationalDeadband = maxTranslationalSpeed.times(0.1);
-    public static final AngularVelocity rotationalDeadband = maxAngularSpeed.times(0.1);
+    public static final LinearVelocity translationalDeadband =
+        TunerConstants.kSpeedAt12Volts.times(0.1);
+    public static final AngularVelocity rotationalDeadband = angularSpeed.times(0.1);
   }
 }

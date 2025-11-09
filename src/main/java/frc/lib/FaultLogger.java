@@ -73,6 +73,8 @@ public final class FaultLogger {
 
   /** Polls registered fallibles. This method should be called periodically. */
   public static void update() {
+    DogLog.time("Timing/FaultLogger/update()");
+
     activeFaults.clear();
 
     faultReporters.forEach(f -> f.report());
@@ -89,6 +91,8 @@ public final class FaultLogger {
       activeAlerts.set(activeFaults);
       totalAlerts.set(totalFaults);
     }
+
+    DogLog.timeEnd("Timing/FaultLogger/update()");
   }
 
   /** Clears total faults. */

@@ -1,10 +1,11 @@
 package frc.robot.commands;
 
+import static edu.wpi.first.wpilibj2.command.Commands.sequence;
+
 import choreo.auto.AutoFactory;
 import choreo.auto.AutoRoutine;
 import choreo.auto.AutoTrajectory;
 import dev.doglog.DogLog;
-import edu.wpi.first.wpilibj2.command.Commands;
 import frc.robot.subsystems.Swerve;
 
 /** All auton routines. */
@@ -36,7 +37,7 @@ public class Autos {
 
     AutoTrajectory exampleTraj = routine.trajectory("example");
 
-    routine.active().onTrue(Commands.sequence(exampleTraj.resetOdometry(), exampleTraj.cmd()));
+    routine.active().onTrue(sequence(exampleTraj.resetOdometry(), exampleTraj.cmd()));
 
     return routine;
   }
