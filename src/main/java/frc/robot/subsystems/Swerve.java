@@ -8,6 +8,7 @@ import static edu.wpi.first.units.Units.*;
 import static edu.wpi.first.wpilibj2.command.Commands.sequence;
 
 import choreo.trajectory.SwerveSample;
+import com.ctre.phoenix6.SignalLogger;
 import com.ctre.phoenix6.Utils;
 import com.ctre.phoenix6.hardware.CANcoder;
 import com.ctre.phoenix6.hardware.TalonFX;
@@ -15,6 +16,7 @@ import com.ctre.phoenix6.swerve.SwerveDrivetrainConstants;
 import com.ctre.phoenix6.swerve.SwerveModule;
 import com.ctre.phoenix6.swerve.SwerveModule.DriveRequestType;
 import com.ctre.phoenix6.swerve.SwerveModuleConstants;
+import com.ctre.phoenix6.swerve.SwerveRequest;
 import com.ctre.phoenix6.swerve.SwerveRequest.*;
 import dev.doglog.DogLog;
 import edu.wpi.first.epilogue.Logged;
@@ -29,8 +31,10 @@ import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj.Notifier;
 import edu.wpi.first.wpilibj.RobotController;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Subsystem;
+import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
 import frc.lib.FaultLogger;
 import frc.lib.FaultsTable;
 import frc.lib.FaultsTable.Fault;
@@ -43,6 +47,7 @@ import frc.robot.Constants.SwerveConstants;
 import frc.robot.Robot;
 import frc.robot.generated.TunerConstants.TunerSwerveDrivetrain;
 import frc.robot.utils.HolonomicController;
+import frc.robot.utils.SysId;
 import frc.robot.utils.VisionPoseEstimator;
 import frc.robot.utils.VisionPoseEstimator.VisionPoseEstimate;
 import java.util.ArrayList;
@@ -76,6 +81,55 @@ public class Swerve extends TunerSwerveDrivetrain implements Subsystem, SelfChec
           getName() + " Faults"); // TODO: watch out unit tests
 
   private boolean _hasError = false;
+
+  private final SwerveRequest.SysIdSwerveTranslation _translationCharacterization =
+      new SwerveRequest.SysIdSwerveTranslation();
+  private final SwerveRequest.SysIdSwerveSteerGains _steerCharacterization =
+      new SwerveRequest.SysIdSwerveSteerGains();
+  private final SwerveRequest.SysIdSwerveRotation _rotationCharacterization =
+      new SwerveRequest.SysIdSwerveRotation();
+
+  private final SysIdRoutine _translationRoutine =
+      new SysIdRoutine(
+          new SysIdRoutine.Config(
+              null, // Use default ramp rate (1 V/s)
+              Volts.of(4), // Reduce dynamic step voltage to 4 V to prevent brownout
+              null, // Use default timeout (10 s)
+              // Log state with SignalLogger class
+              state -> SignalLogger.writeString("state", state.toString())),
+          new SysIdRoutine.Mechanism(
+              output -> setControl(_translationCharacterization.withVolts(output)), null, this));
+
+  private final SysIdRoutine _steerRoutine =
+      new SysIdRoutine(
+          new SysIdRoutine.Config(
+              null, // Use default ramp rate (1 V/s)
+              Volts.of(7), // Use dynamic voltage of 7 V
+              null, // Use default timeout (10 s)
+              // Log state with SignalLogger class
+              state -> SignalLogger.writeString("state", state.toString())),
+          new SysIdRoutine.Mechanism(
+              volts -> setControl(_steerCharacterization.withVolts(volts)), null, this));
+
+  private final SysIdRoutine _rotationRoutine =
+      new SysIdRoutine(
+          new SysIdRoutine.Config(
+              /* This is in radians per second², but SysId only supports "volts per second" */
+              Volts.of(Math.PI / 6).per(Second),
+              /* This is in radians per second, but SysId only supports "volts" */
+              Volts.of(Math.PI),
+              null, // Use default timeout (10 s)
+              // Log state with SignalLogger class
+              state -> SignalLogger.writeString("state", state.toString())),
+          new SysIdRoutine.Mechanism(
+              output -> {
+                // output is actually radians per second, but SysId only supports "volts"
+                setControl(_rotationCharacterization.withRotationalRate(output.in(Volts)));
+                // also log the requested output for SysId
+                SignalLogger.writeDouble("rotational rate", output.in(Volts));
+              },
+              null,
+              this));
 
   @Logged(name = "Driver Chassis Speeds")
   private final ChassisSpeeds _driverChassisSpeeds = new ChassisSpeeds();
@@ -142,6 +196,19 @@ public class Swerve extends TunerSwerveDrivetrain implements Subsystem, SelfChec
           DogLog.log("Swerve/Odometry Success %", state.SuccessfulDaqs / totalDaqs * 100);
           DogLog.log("Swerve/Odometry Period", state.OdometryPeriod);
         });
+
+    SysId.displayRoutine("Swerve Translation", _translationRoutine);
+    SysId.displayRoutine("Swerve Steer", _steerRoutine);
+    SysId.displayRoutine("Swerve Rotation", _rotationRoutine);
+
+    // TODO remove later
+    final PointWheelsAt pointWheelsAt = new PointWheelsAt();
+    SmartDashboard.putData(
+        "Point Wheels At", run(() -> setControl(pointWheelsAt)).withName("Point Wheels At"));
+    DogLog.tunable(
+        "Angle",
+        Degrees.of(0),
+        angle -> pointWheelsAt.withModuleDirection(Rotation2d.fromDegrees(angle)));
 
     registerFallibles();
 

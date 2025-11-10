@@ -10,6 +10,8 @@ import static edu.wpi.first.wpilibj2.command.button.RobotModeTriggers.*;
 
 import choreo.auto.AutoChooser;
 import com.ctre.phoenix6.SignalLogger;
+import com.ctre.phoenix6.configs.TalonFXConfiguration;
+import com.ctre.phoenix6.hardware.TalonFX;
 import dev.doglog.DogLog;
 import edu.wpi.first.epilogue.Epilogue;
 import edu.wpi.first.epilogue.Logged;
@@ -17,6 +19,8 @@ import edu.wpi.first.epilogue.Logged.Strategy;
 import edu.wpi.first.epilogue.logging.EpilogueBackend;
 import edu.wpi.first.epilogue.logging.FileBackend;
 import edu.wpi.first.epilogue.logging.NTEpilogueBackend;
+import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.math.geometry.Transform2d;
 import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.util.ClassPreloader;
 import edu.wpi.first.wpilibj.DataLogManager;
@@ -109,6 +113,18 @@ public class Robot extends TimedRobot {
     autonomous().whileTrue(chooser.selectedCommandScheduler());
 
     preventChoreoDelay();
+
+    // TODO get rid of these later
+    for (int i = 8; i <= 15; i++) {
+      new TalonFX(i, "CTRE").getConfigurator().apply(new TalonFXConfiguration());
+    }
+
+    SmartDashboard.putData(
+        "Drive To No Azimuth",
+        _swerve.driveTo(_swerve.getPose().plus(new Transform2d(1, 0, Rotation2d.kZero))));
+    SmartDashboard.putData(
+        "Drive To Azimuth",
+        _swerve.driveTo(_swerve.getPose().plus(new Transform2d(1, 1, Rotation2d.kZero))));
   }
 
   /** Watchdog config / class preloading needed to prevent choreo delay. */
