@@ -10,8 +10,6 @@ import static edu.wpi.first.wpilibj2.command.button.RobotModeTriggers.*;
 
 import choreo.auto.AutoChooser;
 import com.ctre.phoenix6.SignalLogger;
-import com.ctre.phoenix6.configs.TalonFXConfiguration;
-import com.ctre.phoenix6.hardware.TalonFX;
 import dev.doglog.DogLog;
 import edu.wpi.first.epilogue.Epilogue;
 import edu.wpi.first.epilogue.Logged;
@@ -19,6 +17,7 @@ import edu.wpi.first.epilogue.Logged.Strategy;
 import edu.wpi.first.epilogue.logging.EpilogueBackend;
 import edu.wpi.first.epilogue.logging.FileBackend;
 import edu.wpi.first.epilogue.logging.NTEpilogueBackend;
+import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Transform2d;
 import edu.wpi.first.networktables.NetworkTableInstance;
@@ -36,6 +35,7 @@ import frc.lib.InputStream;
 import frc.robot.Constants.Ports;
 import frc.robot.Constants.SwerveConstants;
 import frc.robot.commands.Autos;
+import frc.robot.commands.WheelRadiusCharacterization;
 import frc.robot.generated.TunerConstants;
 import frc.robot.subsystems.Swerve;
 import java.lang.reflect.Field;
@@ -92,6 +92,9 @@ public class Robot extends TimedRobot {
     configureDriverBindings();
 
     SmartDashboard.putData(
+        "Wheel Radius Characterization", new WheelRadiusCharacterization(_swerve));
+
+    SmartDashboard.putData(
         "Robot Self Check",
         sequence(
                 runOnce(() -> DataLogManager.log("Robot Self Check Started")),
@@ -114,10 +117,7 @@ public class Robot extends TimedRobot {
 
     preventChoreoDelay();
 
-    // TODO get rid of these later
-    for (int i = 8; i <= 15; i++) {
-      new TalonFX(i, "CTRE").getConfigurator().apply(new TalonFXConfiguration());
-    }
+    SmartDashboard.putData("Reset Pose", runOnce(() -> _swerve.resetPose(Pose2d.kZero)));
 
     SmartDashboard.putData(
         "Drive To No Azimuth",
