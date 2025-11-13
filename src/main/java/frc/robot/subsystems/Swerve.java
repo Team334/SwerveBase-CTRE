@@ -157,7 +157,7 @@ public class Swerve extends TunerSwerveDrivetrain implements Subsystem, SelfChec
   private boolean _hasAppliedDriverPerspective = false;
 
   /**
-   * Creates a new CommandSwerveDrivetrain.
+   * Creates a new Swerve.
    *
    * @param drivetrainConstants The CTRE {@link SwerveDrivetrainConstants}. These involve the CAN
    *     Bus name and the Pigeon Id.
