@@ -120,6 +120,12 @@ public class Robot extends TimedRobot {
     SmartDashboard.putData("Reset Pose", runOnce(() -> _swerve.resetPose(Pose2d.kZero)));
 
     SmartDashboard.putData(
+        "Wheel Slip Protector",
+        idle()
+            .until(() -> _swerve.getChassisSpeeds().vxMetersPerSecond > 0.2)
+            .andThen(_swerve.brake()));
+
+    SmartDashboard.putData(
         "Drive To No Azimuth",
         _swerve.driveTo(_swerve.getPose().plus(new Transform2d(1, 0, Rotation2d.kZero))));
     SmartDashboard.putData(
