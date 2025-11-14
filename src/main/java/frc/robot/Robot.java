@@ -177,19 +177,21 @@ public class Robot extends TimedRobot {
 
   private void configureDriverBindings() {
     _swerve.setDefaultCommand(
-        _swerve.drive(
-            InputStream.of(_driverController::getLeftY)
-                .negate()
-                .signedPow(2)
-                .scale(TunerConstants.kSpeedAt12Volts.in(MetersPerSecond)),
-            InputStream.of(_driverController::getLeftX)
-                .negate()
-                .signedPow(2)
-                .scale(TunerConstants.kSpeedAt12Volts.in(MetersPerSecond)),
-            InputStream.of(_driverController::getRightX)
-                .negate()
-                .signedPow(2)
-                .scale(SwerveConstants.angularSpeed.in(RadiansPerSecond))));
+        _swerve
+            .drive(
+                InputStream.of(_driverController::getLeftY)
+                    .negate()
+                    .signedPow(2)
+                    .scale(TunerConstants.kSpeedAt12Volts.in(MetersPerSecond)),
+                InputStream.of(_driverController::getLeftX)
+                    .negate()
+                    .signedPow(2)
+                    .scale(TunerConstants.kSpeedAt12Volts.in(MetersPerSecond)),
+                InputStream.of(_driverController::getRightX)
+                    .negate()
+                    .signedPow(2)
+                    .scale(SwerveConstants.angularSpeed.in(RadiansPerSecond)))
+            .beforeStarting(() -> _swerve.isOpenLoop = true));
 
     _driverController.x().whileTrue(_swerve.brake());
     _driverController.a().onTrue(_swerve.toggleFieldOriented());

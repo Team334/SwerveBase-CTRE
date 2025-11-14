@@ -63,6 +63,8 @@ public class WheelRadiusCharacterization extends Command {
     _initialWheelDistances = getWheelDistancesRadians();
 
     _wheelRadius = 0;
+
+    _swerve.isOpenLoop = false;
   }
 
   // Called every time the scheduler runs while the command is scheduled.

@@ -135,10 +135,10 @@ public class Swerve extends TunerSwerveDrivetrain implements Subsystem, SelfChec
   private final ChassisSpeeds _driverChassisSpeeds = new ChassisSpeeds();
 
   @Logged(name = "Is Field Oriented")
-  private boolean _isFieldOriented = true;
+  public boolean isFieldOriented = true;
 
   @Logged(name = "Is Open Loop")
-  private boolean _isOpenLoop = true;
+  public boolean isOpenLoop = true;
 
   @Logged(name = "Ignore Vision Estimates")
   private boolean _ignoreVisionEstimates = false;
@@ -316,7 +316,7 @@ public class Swerve extends TunerSwerveDrivetrain implements Subsystem, SelfChec
   public Command toggleFieldOriented() {
     return brake()
         .withTimeout(0.5)
-        .andThen(runOnce(() -> _isFieldOriented = !_isFieldOriented))
+        .andThen(runOnce(() -> isFieldOriented = !isFieldOriented))
         .withName("Toggle Field Oriented");
   }
 
@@ -356,7 +356,7 @@ public class Swerve extends TunerSwerveDrivetrain implements Subsystem, SelfChec
 
   /**
    * Drives the swerve drive. Open loop/field oriented behavior is configured with {@link
-   * #_isOpenLoop} and {@link #_isFieldOriented}.
+   * #isOpenLoop} and {@link #isFieldOriented}.
    *
    * @param velX The x velocity in meters per second.
    * @param velY The y velocity in meters per second.
@@ -367,14 +367,14 @@ public class Swerve extends TunerSwerveDrivetrain implements Subsystem, SelfChec
     _driverChassisSpeeds.vyMetersPerSecond = velY;
     _driverChassisSpeeds.omegaRadiansPerSecond = velOmega;
 
-    if (_isFieldOriented) {
+    if (isFieldOriented) {
       setControl(
           _fieldCentricRequest
               .withVelocityX(velX)
               .withVelocityY(velY)
               .withRotationalRate(velOmega)
               .withDriveRequestType(
-                  _isOpenLoop ? DriveRequestType.OpenLoopVoltage : DriveRequestType.Velocity));
+                  isOpenLoop ? DriveRequestType.OpenLoopVoltage : DriveRequestType.Velocity));
     } else {
       setControl(
           _robotCentricRequest
@@ -382,7 +382,7 @@ public class Swerve extends TunerSwerveDrivetrain implements Subsystem, SelfChec
               .withVelocityY(velY)
               .withRotationalRate(velOmega)
               .withDriveRequestType(
-                  _isOpenLoop ? DriveRequestType.OpenLoopVoltage : DriveRequestType.Velocity));
+                  isOpenLoop ? DriveRequestType.OpenLoopVoltage : DriveRequestType.Velocity));
     }
   }
 
