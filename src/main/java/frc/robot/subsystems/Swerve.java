@@ -45,6 +45,7 @@ import frc.robot.Constants;
 import frc.robot.Constants.FieldConstants;
 import frc.robot.Constants.SwerveConstants;
 import frc.robot.Robot;
+import frc.robot.commands.MovingSteerSetpoint;
 import frc.robot.generated.TunerConstants.TunerSwerveDrivetrain;
 import frc.robot.utils.HolonomicController;
 import frc.robot.utils.SysId;
@@ -209,6 +210,8 @@ public class Swerve extends TunerSwerveDrivetrain implements Subsystem, SelfChec
         "Angle",
         Degrees.of(0),
         angle -> pointWheelsAt.withModuleDirection(Rotation2d.fromDegrees(angle)));
+
+    SmartDashboard.putData("MovingSteerSetpoint", new MovingSteerSetpoint(this));
 
     registerFallibles();
 
