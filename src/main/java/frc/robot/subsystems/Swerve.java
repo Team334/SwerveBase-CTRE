@@ -205,11 +205,9 @@ public class Swerve extends TunerSwerveDrivetrain implements Subsystem, SelfChec
     // TODO remove later
     final PointWheelsAt pointWheelsAt = new PointWheelsAt();
     SmartDashboard.putData(
-        "Point Wheels At", run(() -> setControl(pointWheelsAt)).withName("Point Wheels At"));
-    DogLog.tunable(
-        "Angle",
-        Degrees.of(0),
-        angle -> pointWheelsAt.withModuleDirection(Rotation2d.fromDegrees(angle)));
+        "Point Wheels At",
+        run(() -> setControl(pointWheelsAt.withModuleDirection(Rotation2d.kCW_90deg)))
+            .withName("Point Wheels At"));
 
     SmartDashboard.putData("MovingSteerSetpoint", new MovingSteerSetpoint(this));
 

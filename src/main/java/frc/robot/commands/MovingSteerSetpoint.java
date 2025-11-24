@@ -5,6 +5,7 @@
 package frc.robot.commands;
 
 import com.ctre.phoenix6.swerve.SwerveRequest.PointWheelsAt;
+import dev.doglog.DogLog;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.wpilibj2.command.Command;
 import frc.robot.subsystems.Swerve;
@@ -18,12 +19,16 @@ public class MovingSteerSetpoint extends Command {
 
   private double d = 0;
 
+  private double inc = 1;
+
   /** Creates a new MovingSteerSetpoint. */
   public MovingSteerSetpoint(Swerve swerve) {
     // Use addRequirements() here to declare subsystem dependencies.
     addRequirements(swerve);
 
     this.swerve = swerve;
+
+    DogLog.tunable("Degrees Per 0.02 Sec", 1, (double a) -> inc = a);
   }
 
   // Called when the command is initially scheduled.
@@ -35,7 +40,7 @@ public class MovingSteerSetpoint extends Command {
   // Called every time the scheduler runs while the command is scheduled.
   @Override
   public void execute() {
-    d += 3;
+    d += inc;
 
     swerve.setControl(pwa.withModuleDirection(Rotation2d.fromDegrees(d)));
   }
