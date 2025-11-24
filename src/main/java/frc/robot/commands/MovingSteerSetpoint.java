@@ -28,7 +28,7 @@ public class MovingSteerSetpoint extends Command {
 
     this.swerve = swerve;
 
-    DogLog.tunable("Degrees Per 0.02 Sec", 1, (double a) -> inc = a);
+    DogLog.tunable("Degrees Per 0.02 Sec", 6, (double a) -> inc = a);
   }
 
   // Called when the command is initially scheduled.
