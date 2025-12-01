@@ -211,6 +211,8 @@ public class Swerve extends TunerSwerveDrivetrain implements Subsystem, SelfChec
 
     SmartDashboard.putData("MovingSteerSetpoint", new MovingSteerSetpoint(this));
 
+    SmartDashboard.putData("Spin In Place", run(() -> drive(0, 0, Math.PI / 6)));
+
     registerFallibles();
 
     if (Robot.isSimulation()) {
