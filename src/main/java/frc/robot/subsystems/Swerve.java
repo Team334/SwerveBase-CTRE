@@ -26,6 +26,7 @@ import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Pose3d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
+import edu.wpi.first.networktables.DoubleSubscriber;
 import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
@@ -211,7 +212,10 @@ public class Swerve extends TunerSwerveDrivetrain implements Subsystem, SelfChec
 
     SmartDashboard.putData("MovingSteerSetpoint", new MovingSteerSetpoint(this));
 
-    SmartDashboard.putData("Spin In Place", run(() -> drive(0, 0, Math.PI / 6)));
+    DoubleSubscriber speed = DogLog.tunable("Speed", 3.14);
+
+    SmartDashboard.putData(
+        "Spin In Place", run(() -> drive(0, 0, speed.get())).withName("Spin In Place"));
 
     registerFallibles();
 
