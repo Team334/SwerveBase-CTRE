@@ -21,7 +21,7 @@ public class HolonomicController {
           0,
           new Constraints(
               MetersPerSecond.of(3).in(MetersPerSecond),
-              MetersPerSecondPerSecond.of(4).in(MetersPerSecondPerSecond)));
+              MetersPerSecondPerSecond.of(6).in(MetersPerSecondPerSecond)));
   private final ProfiledPIDController _headingProfile =
       new ProfiledPIDController(
           0,

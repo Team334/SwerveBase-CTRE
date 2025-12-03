@@ -127,10 +127,10 @@ public class Robot extends TimedRobot {
 
     SmartDashboard.putData(
         "Drive To No Azimuth",
-        _swerve.driveTo(_swerve.getPose().plus(new Transform2d(1, 0, Rotation2d.kZero))));
+        _swerve.driveTo(() -> _swerve.getPose().plus(new Transform2d(1, 0, Rotation2d.kZero))));
     SmartDashboard.putData(
         "Drive To Azimuth",
-        _swerve.driveTo(_swerve.getPose().plus(new Transform2d(1, 1, Rotation2d.kZero))));
+        _swerve.driveTo(() -> _swerve.getPose().plus(new Transform2d(1, 1, Rotation2d.kZero))));
   }
 
   /** Watchdog config / class preloading needed to prevent choreo delay. */
