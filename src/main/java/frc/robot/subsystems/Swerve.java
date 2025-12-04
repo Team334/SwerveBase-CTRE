@@ -416,12 +416,22 @@ public class Swerve extends TunerSwerveDrivetrain implements Subsystem, SelfChec
     return driveTo(() -> goalPose);
   }
 
+  private double prevspeedx = 0; // DELETE LATER
+
   /** Drives the robot in a straight line to some given goal pose. */
   public Command driveTo(Supplier<Pose2d> goalPose) {
     return run(() -> {
           ChassisSpeeds speeds = _poseController.calculate(getPose());
 
-          setControl(_fieldSpeedsRequest.withSpeeds(speeds));
+          setControl(
+              _fieldSpeedsRequest
+                  .withSpeeds(speeds)
+                  .withWheelForceFeedforwardsX(
+                      new double[] {(speeds.vxMetersPerSecond - prevspeedx) / 0.02 * 136.38
+                        // DELETE LATER !!!! (to be replaced by CTRE's 2026 WheelForceCalculator)
+                      }));
+
+          prevspeedx = speeds.vxMetersPerSecond;
         })
         .beforeStarting(
             () ->
