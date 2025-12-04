@@ -14,6 +14,8 @@ import edu.wpi.first.units.measure.Distance;
 import edu.wpi.first.units.measure.Frequency;
 import edu.wpi.first.units.measure.LinearAcceleration;
 import edu.wpi.first.units.measure.LinearVelocity;
+import edu.wpi.first.units.measure.Mass;
+import edu.wpi.first.units.measure.MomentOfInertia;
 import frc.robot.generated.TunerConstants;
 
 /**
@@ -49,6 +51,9 @@ public final class Constants {
 
   public static class SwerveConstants {
     public static final Frequency odometryFrequency = Hertz.of(250);
+
+    public static final Mass mass = Pounds.of(136.38);
+    public static final MomentOfInertia moi = KilogramSquareMeters.of(0);
 
     public static final Distance driveRadius =
         Meters.of(

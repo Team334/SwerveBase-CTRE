@@ -9,9 +9,13 @@ import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.controller.ProfiledPIDController;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.numbers.N2;
 import edu.wpi.first.math.trajectory.TrapezoidProfile.Constraints;
+import frc.robot.Constants.SwerveConstants;
+import frc.robot.Robot;
+import frc.robot.utils.WheelForceCalculator.Feedforwards;
 
 public class HolonomicController {
   private final ProfiledPIDController _translationProfile =
@@ -41,9 +45,22 @@ public class HolonomicController {
 
   private final PIDController _headingController = new PIDController(0, 0, 0);
 
-  public HolonomicController() {
+  private final WheelForceCalculator _wheelForceCalculator;
+  private Feedforwards _wheelForces = new Feedforwards(4);
+
+  private ChassisSpeeds _prevReferenceSpeeds = new ChassisSpeeds();
+
+  public HolonomicController(Translation2d[] moduleLocations) {
     _headingController.enableContinuousInput(-Math.PI, Math.PI);
     _headingProfile.enableContinuousInput(-Math.PI, Math.PI);
+
+    _wheelForceCalculator =
+        new WheelForceCalculator(moduleLocations, SwerveConstants.mass, SwerveConstants.moi);
+  }
+
+  /** The wheel forces based on the current and previous timestep profile reference velocity. */
+  public Feedforwards getWheelForces() {
+    return _wheelForces;
   }
 
   /** Whether the chassis profiles have been completed or not. */
@@ -78,6 +95,8 @@ public class HolonomicController {
             / _translationDirection.norm());
     _headingProfile.reset(
         currentPose.getRotation().getRadians(), currentSpeeds.omegaRadiansPerSecond);
+
+    _prevReferenceSpeeds = currentSpeeds;
 
     reset();
 
@@ -132,11 +151,21 @@ public class HolonomicController {
     DogLog.log("Auto/Controller Desired Pose", desiredPose);
     DogLog.log("Auto/Controller Reference Pose", currentPose);
 
-    return baseSpeeds.plus(
-        new ChassisSpeeds(
-            _xController.calculate(currentPose.getX(), desiredPose.getX()),
-            _yController.calculate(currentPose.getY(), desiredPose.getY()),
-            _headingController.calculate(
-                currentPose.getRotation().getRadians(), desiredPose.getRotation().getRadians())));
+    ChassisSpeeds referenceSpeeds =
+        baseSpeeds.plus(
+            new ChassisSpeeds(
+                _xController.calculate(currentPose.getX(), desiredPose.getX()),
+                _yController.calculate(currentPose.getY(), desiredPose.getY()),
+                _headingController.calculate(
+                    currentPose.getRotation().getRadians(),
+                    desiredPose.getRotation().getRadians())));
+
+    _wheelForces =
+        _wheelForceCalculator.calculate(
+            Robot.kDefaultPeriod, _prevReferenceSpeeds, referenceSpeeds);
+
+    _prevReferenceSpeeds = referenceSpeeds;
+
+    return referenceSpeeds;
   }
 }
