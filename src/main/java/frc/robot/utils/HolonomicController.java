@@ -24,32 +24,41 @@ public class HolonomicController {
           0,
           0,
           new Constraints(
-              MetersPerSecond.of(3).in(MetersPerSecond),
-              MetersPerSecondPerSecond.of(6).in(MetersPerSecondPerSecond)));
+              SwerveConstants.profileTranslationalVelocity.in(MetersPerSecond),
+              SwerveConstants.profileTranslationalAcceleration.in(MetersPerSecondPerSecond)));
+
   private final ProfiledPIDController _headingProfile =
       new ProfiledPIDController(
           0,
           0,
           0,
           new Constraints(
-              RadiansPerSecond.of(Math.PI).in(RadiansPerSecond),
-              RadiansPerSecondPerSecond.of(Math.PI * 2).in(RadiansPerSecondPerSecond)));
+              SwerveConstants.profileAngularVelocity.in(RadiansPerSecond),
+              SwerveConstants.profileAngularAcceleration.in(RadiansPerSecondPerSecond)));
 
   private Vector<N2> _translationDirection = VecBuilder.fill(0, 0);
 
   private Pose2d _startPose = Pose2d.kZero;
   private double _goalHeading = 0;
 
-  private final PIDController _xController = new PIDController(0, 0, 0);
-  private final PIDController _yController = new PIDController(0, 0, 0);
+  private final PIDController _xController =
+      new PIDController(SwerveConstants.poseTranslationalkP.in(MetersPerSecond.per(Meter)), 0, 0);
+  private final PIDController _yController =
+      new PIDController(SwerveConstants.poseTranslationalkP.in(MetersPerSecond.per(Meter)), 0, 0);
 
-  private final PIDController _headingController = new PIDController(0, 0, 0);
+  private final PIDController _headingController =
+      new PIDController(SwerveConstants.poseRotationkP.in(RadiansPerSecond.per(Radian)), 0, 0);
 
   private final WheelForceCalculator _wheelForceCalculator;
   private Feedforwards _wheelForces = new Feedforwards(4);
 
   private ChassisSpeeds _prevReferenceSpeeds = new ChassisSpeeds();
 
+  /**
+   * Creates a new HolonomicController.
+   *
+   * @param moduleLocations The locations of the modules.
+   */
   public HolonomicController(Translation2d[] moduleLocations) {
     _headingController.enableContinuousInput(-Math.PI, Math.PI);
     _headingProfile.enableContinuousInput(-Math.PI, Math.PI);
@@ -58,12 +67,12 @@ public class HolonomicController {
         new WheelForceCalculator(moduleLocations, SwerveConstants.mass, SwerveConstants.moi);
   }
 
-  /** The wheel forces based on the current and previous timestep profile reference velocity. */
+  /** The wheel forces based on the acceleration of the profiles. */
   public Feedforwards getWheelForces() {
     return _wheelForces;
   }
 
-  /** Whether the chassis profiles have been completed or not. */
+  /** Whether the profiles have been completed or not. */
   public boolean isFinished() {
     return _translationProfile.getSetpoint().equals(_translationProfile.getGoal())
         && _headingProfile.getSetpoint().equals(_headingProfile.getGoal());
@@ -78,7 +87,7 @@ public class HolonomicController {
   }
 
   /**
-   * Resets the motion profiles and the PID controllers.
+   * Resets the profiles and the PID controllers.
    *
    * @param currentPose The current pose.
    * @param goalPose The goal pose.

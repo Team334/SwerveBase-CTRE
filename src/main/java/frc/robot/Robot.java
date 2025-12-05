@@ -180,17 +180,20 @@ public class Robot extends TimedRobot {
         _swerve
             .drive(
                 InputStream.of(_driverController::getLeftY)
+                    .deadband(0.02, 1)
                     .negate()
                     .signedPow(2)
-                    .scale(TunerConstants.kSpeedAt12Volts.in(MetersPerSecond)),
+                    .scale(SwerveConstants.driverTranslationalVelocity.in(MetersPerSecond)),
                 InputStream.of(_driverController::getLeftX)
+                    .deadband(0.02, 1)
                     .negate()
                     .signedPow(2)
-                    .scale(TunerConstants.kSpeedAt12Volts.in(MetersPerSecond)),
+                    .scale(SwerveConstants.driverTranslationalVelocity.in(MetersPerSecond)),
                 InputStream.of(_driverController::getRightX)
+                    .deadband(0.02, 1)
                     .negate()
                     .signedPow(2)
-                    .scale(SwerveConstants.angularSpeed.in(RadiansPerSecond)))
+                    .scale(SwerveConstants.driverAngularVelocity.in(RadiansPerSecond)))
             .beforeStarting(() -> _swerve.isOpenLoop = true));
 
     _driverController.x().whileTrue(_swerve.brake());

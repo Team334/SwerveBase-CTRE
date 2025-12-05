@@ -14,7 +14,6 @@ import edu.wpi.first.units.measure.Distance;
 import edu.wpi.first.wpilibj2.command.Command;
 import frc.lib.FaultLogger;
 import frc.lib.FaultsTable.FaultType;
-import frc.robot.Constants.SwerveConstants;
 import frc.robot.generated.TunerConstants;
 import frc.robot.subsystems.Swerve;
 
@@ -27,6 +26,12 @@ public class WheelRadiusCharacterization extends Command {
   private double[] _initialWheelDistances;
 
   private double _wheelRadius;
+
+  private final Distance _driveRadius =
+      Meters.of(
+          Math.sqrt(
+              Math.pow(TunerConstants.FrontLeft.LocationX, 2)
+                  + Math.pow(TunerConstants.FrontLeft.LocationY, 2)));
 
   public WheelRadiusCharacterization(Swerve swerve) {
     setName("Wheel Radius Characterization");
@@ -79,8 +84,7 @@ public class WheelRadiusCharacterization extends Command {
     _lastGyroYaw = _swerve.getHeading().getRadians();
 
     DogLog.log(
-        "Wheel Radius Characterization/Meters Turned",
-        SwerveConstants.driveRadius.in(Meters) * _accumGyroYaw);
+        "Wheel Radius Characterization/Meters Turned", _driveRadius.in(Meters) * _accumGyroYaw);
 
     double averageWheelDistance = 0;
     double[] wheelDistances = getWheelDistancesRadians();
@@ -93,7 +97,7 @@ public class WheelRadiusCharacterization extends Command {
 
     averageWheelDistance /= _swerve.getModules().length;
 
-    _wheelRadius = (SwerveConstants.driveRadius.in(Meters) * _accumGyroYaw) / averageWheelDistance;
+    _wheelRadius = (_driveRadius.in(Meters) * _accumGyroYaw) / averageWheelDistance;
 
     DogLog.log(
         "Wheel Radius Characterization/Estimated Wheel Radius", Units.metersToInches(_wheelRadius));
