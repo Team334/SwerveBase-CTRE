@@ -59,9 +59,9 @@ public final class Constants {
     public static final LinearVelocity driverTranslationalVelocity = MetersPerSecond.of(4);
     public static final AngularVelocity driverAngularVelocity = RadiansPerSecond.of(Math.PI);
 
-    public static final LinearVelocity profileTranslationalVelocity = MetersPerSecond.of(3);
+    public static final LinearVelocity profileTranslationalVelocity = MetersPerSecond.of(1);
     public static final LinearAcceleration profileTranslationalAcceleration =
-        MetersPerSecondPerSecond.of(6);
+        MetersPerSecondPerSecond.of(2);
 
     public static final AngularVelocity profileAngularVelocity = RadiansPerSecond.of(Math.PI);
     public static final AngularAcceleration profileAngularAcceleration =
