@@ -17,8 +17,6 @@ import edu.wpi.first.epilogue.Logged.Strategy;
 import edu.wpi.first.epilogue.logging.EpilogueBackend;
 import edu.wpi.first.epilogue.logging.FileBackend;
 import edu.wpi.first.epilogue.logging.NTEpilogueBackend;
-import edu.wpi.first.math.geometry.Pose2d;
-import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.util.ClassPreloader;
 import edu.wpi.first.wpilibj.DataLogManager;
@@ -115,21 +113,6 @@ public class Robot extends TimedRobot {
     autonomous().whileTrue(chooser.selectedCommandScheduler());
 
     preventChoreoDelay();
-
-    SmartDashboard.putData("Reset Pose", runOnce(() -> _swerve.resetPose(Pose2d.kZero)));
-
-    SmartDashboard.putData(
-        "Wheel Slip Protector",
-        idle()
-            .until(() -> _swerve.getChassisSpeeds().vxMetersPerSecond > 0.2)
-            .andThen(_swerve.brake()));
-
-    SmartDashboard.putData("Drive To (2, 0)", _swerve.driveTo(new Pose2d(2, 0, Rotation2d.kZero)));
-
-    SmartDashboard.putData(
-        "Drive To (2, -2)", _swerve.driveTo(new Pose2d(2, -2, Rotation2d.kZero)));
-
-    SmartDashboard.putData("Drive To (0, 0)", _swerve.driveTo(Pose2d.kZero));
   }
 
   /** Watchdog config / class preloading needed to prevent choreo delay. */

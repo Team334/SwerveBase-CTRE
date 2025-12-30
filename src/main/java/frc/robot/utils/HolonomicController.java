@@ -52,7 +52,7 @@ public class HolonomicController {
   private final WheelForceCalculator _wheelForceCalculator;
   private Feedforwards _wheelForces = new Feedforwards(4);
 
-  private ChassisSpeeds _prevReferenceSpeeds = new ChassisSpeeds();
+  private ChassisSpeeds _prevSetpointSpeeds = new ChassisSpeeds();
 
   /**
    * Creates a new HolonomicController.
@@ -105,7 +105,7 @@ public class HolonomicController {
     _headingProfile.reset(
         currentPose.getRotation().getRadians(), currentSpeeds.omegaRadiansPerSecond);
 
-    _prevReferenceSpeeds = currentSpeeds;
+    _prevSetpointSpeeds = currentSpeeds;
 
     reset();
 
@@ -138,13 +138,18 @@ public class HolonomicController {
             _startPose.getY() + setpointPosition.get(1),
             new Rotation2d(_headingProfile.getSetpoint().position));
 
-    return calculate(
+    ChassisSpeeds setpointSpeeds =
         new ChassisSpeeds(
             setpointVelocity.get(0),
             setpointVelocity.get(1),
-            _headingProfile.getSetpoint().velocity),
-        setpointPose,
-        currentPose);
+            _headingProfile.getSetpoint().velocity);
+
+    _wheelForces =
+        _wheelForceCalculator.calculate(Robot.kDefaultPeriod, _prevSetpointSpeeds, setpointSpeeds);
+
+    _prevSetpointSpeeds = setpointSpeeds;
+
+    return calculate(setpointSpeeds, setpointPose, currentPose);
   }
 
   /**
@@ -160,21 +165,11 @@ public class HolonomicController {
     DogLog.log("Auto/Controller Desired Pose", desiredPose);
     DogLog.log("Auto/Controller Reference Pose", currentPose);
 
-    ChassisSpeeds referenceSpeeds =
-        baseSpeeds.plus(
-            new ChassisSpeeds(
-                _xController.calculate(currentPose.getX(), desiredPose.getX()),
-                _yController.calculate(currentPose.getY(), desiredPose.getY()),
-                _headingController.calculate(
-                    currentPose.getRotation().getRadians(),
-                    desiredPose.getRotation().getRadians())));
-
-    _wheelForces =
-        _wheelForceCalculator.calculate(
-            Robot.kDefaultPeriod, _prevReferenceSpeeds, referenceSpeeds);
-
-    _prevReferenceSpeeds = referenceSpeeds;
-
-    return referenceSpeeds;
+    return baseSpeeds.plus(
+        new ChassisSpeeds(
+            _xController.calculate(currentPose.getX(), desiredPose.getX()),
+            _yController.calculate(currentPose.getY(), desiredPose.getY()),
+            _headingController.calculate(
+                currentPose.getRotation().getRadians(), desiredPose.getRotation().getRadians())));
   }
 }

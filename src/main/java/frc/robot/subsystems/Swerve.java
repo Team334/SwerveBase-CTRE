@@ -26,13 +26,11 @@ import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Pose3d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
-import edu.wpi.first.networktables.DoubleSubscriber;
 import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj.Notifier;
 import edu.wpi.first.wpilibj.RobotController;
-import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Subsystem;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
@@ -46,7 +44,6 @@ import frc.robot.Constants;
 import frc.robot.Constants.FieldConstants;
 import frc.robot.Constants.SwerveConstants;
 import frc.robot.Robot;
-import frc.robot.commands.MovingSteerSetpoint;
 import frc.robot.generated.TunerConstants.TunerSwerveDrivetrain;
 import frc.robot.utils.HolonomicController;
 import frc.robot.utils.SysId;
@@ -204,20 +201,6 @@ public class Swerve extends TunerSwerveDrivetrain implements Subsystem, SelfChec
     SysId.displayRoutine("Swerve Translation", _translationRoutine);
     SysId.displayRoutine("Swerve Steer", _steerRoutine);
     SysId.displayRoutine("Swerve Rotation", _rotationRoutine);
-
-    // TODO remove later
-    final PointWheelsAt pointWheelsAt = new PointWheelsAt();
-    SmartDashboard.putData(
-        "Point Wheels At",
-        run(() -> setControl(pointWheelsAt.withModuleDirection(Rotation2d.kCW_90deg)))
-            .withName("Point Wheels At"));
-
-    SmartDashboard.putData("MovingSteerSetpoint", new MovingSteerSetpoint(this));
-
-    DoubleSubscriber speed = DogLog.tunable("Speed", 3.14);
-
-    SmartDashboard.putData(
-        "Spin In Place", run(() -> drive(0, 0, speed.get())).withName("Spin In Place"));
 
     registerFallibles();
 
