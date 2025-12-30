@@ -128,7 +128,7 @@ public class UnitTestingUtil {
    * Schedules a command and runs it until it ends. Be careful -- if the command you give never
    * ends, this will be an infinite loop!
    *
-   * @param command
+   * @param command The command to run.
    */
   public static void runToCompletion(Command command) {
     CommandScheduler.getInstance().schedule(command);
