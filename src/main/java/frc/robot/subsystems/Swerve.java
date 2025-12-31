@@ -301,7 +301,7 @@ public class Swerve extends TunerSwerveDrivetrain implements Subsystem, SelfChec
             });
 
     _simNotifier.setName("Swerve Sim Thread");
-    _simNotifier.startPeriodic(1 / Constants.simUpdateFrequency.in(Hertz));
+    _simNotifier.startPeriodic(1 / Constants.simNotifierFrequency.in(Hertz));
   }
 
   /** Toggles the field oriented boolean. */

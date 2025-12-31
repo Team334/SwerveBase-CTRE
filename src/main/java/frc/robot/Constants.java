@@ -30,7 +30,7 @@ import edu.wpi.first.units.measure.Per;
  * constants are needed, to reduce verbosity.
  */
 public final class Constants {
-  public static final Frequency simUpdateFrequency = Hertz.of(200);
+  public static final Frequency simNotifierFrequency = Hertz.of(200);
 
   public static class Ports {
     public static final int driverController = 0;
