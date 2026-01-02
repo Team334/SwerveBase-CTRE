@@ -1,6 +1,6 @@
 plugins {
     id "java"
-    id "edu.wpi.first.GradleRIO" version "2025.3.2"
+    id "edu.wpi.first.GradleRIO" version "2026.1.1-beta-1"
     id 'com.diffplug.spotless' version '6.20.0'
 }
 
@@ -35,6 +35,16 @@ deploy {
                     // jvmArgs.add("-Dcom.sun.management.jmxremote.ssl=false")
                     // jvmArgs.add("-Dcom.sun.management.jmxremote.authenticate=false")
                     // jvmArgs.add("-Djava.rmi.server.hostname=10.3.34.2")
+
+                    // jvmArgs.add("-XX:+UnlockExperimentalVMOptions")
+                    // jvmArgs.add("-XX:GCTimeRatio=5")
+                    // jvmArgs.add("-XX:+UseSerialGC")
+                    // jvmArgs.add("-XX:MaxGCPauseMillis=50")
+
+                    // final MAX_JAVA_HEAP_SIZE_MB = 100;
+                    // jvmArgs.add("-Xmx" + MAX_JAVA_HEAP_SIZE_MB + "M")
+                    // jvmArgs.add("-Xms" + MAX_JAVA_HEAP_SIZE_MB + "M")
+                    // jvmArgs.add("-XX:+AlwaysPreTouch")
                 }
 
                 // Static files artifact
@@ -51,7 +61,8 @@ deploy {
 
 def deployArtifact = deploy.targets.roborio.artifacts.frcJava
 
-// Set to true to use debug for JNI.
+// Set to true to use debug for all targets including JNI, which will drastically impact
+// performance.
 wpi.java.debugJni = false
 // wpi.sim.envVar("JAVA_TOOL_OPTIONS", "-verbose:class") // view classloading sim
 

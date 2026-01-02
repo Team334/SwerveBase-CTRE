@@ -32,6 +32,7 @@ import frc.lib.InputStream;
 import frc.robot.Constants.Ports;
 import frc.robot.Constants.SwerveConstants;
 import frc.robot.commands.Autos;
+import frc.robot.commands.WheelRadiusCharacterization;
 import frc.robot.generated.TunerConstants;
 import frc.robot.subsystems.Swerve;
 import java.lang.reflect.Field;
@@ -86,6 +87,9 @@ public class Robot extends TimedRobot {
     FaultLogger.setup(_ntInst);
 
     configureDriverBindings();
+
+    SmartDashboard.putData(
+        "Wheel Radius Characterization", new WheelRadiusCharacterization(_swerve));
 
     SmartDashboard.putData(
         "Robot Self Check",
@@ -155,19 +159,24 @@ public class Robot extends TimedRobot {
 
   private void configureDriverBindings() {
     _swerve.setDefaultCommand(
-        _swerve.drive(
-            InputStream.of(_driverController::getLeftY)
-                .negate()
-                .signedPow(2)
-                .scale(TunerConstants.kSpeedAt12Volts.in(MetersPerSecond)),
-            InputStream.of(_driverController::getLeftX)
-                .negate()
-                .signedPow(2)
-                .scale(TunerConstants.kSpeedAt12Volts.in(MetersPerSecond)),
-            InputStream.of(_driverController::getRightX)
-                .negate()
-                .signedPow(2)
-                .scale(SwerveConstants.angularSpeed.in(RadiansPerSecond))));
+        _swerve
+            .drive(
+                InputStream.of(_driverController::getLeftY)
+                    .deadband(0.02, 1)
+                    .negate()
+                    .signedPow(2)
+                    .scale(SwerveConstants.driverTranslationalVelocity.in(MetersPerSecond)),
+                InputStream.of(_driverController::getLeftX)
+                    .deadband(0.02, 1)
+                    .negate()
+                    .signedPow(2)
+                    .scale(SwerveConstants.driverTranslationalVelocity.in(MetersPerSecond)),
+                InputStream.of(_driverController::getRightX)
+                    .deadband(0.02, 1)
+                    .negate()
+                    .signedPow(2)
+                    .scale(SwerveConstants.driverAngularVelocity.in(RadiansPerSecond)))
+            .beforeStarting(() -> _swerve.isOpenLoop = true));
 
     _driverController.x().whileTrue(_swerve.brake());
     _driverController.a().onTrue(_swerve.toggleFieldOriented());

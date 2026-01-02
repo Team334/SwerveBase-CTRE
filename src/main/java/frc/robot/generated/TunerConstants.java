@@ -51,7 +51,7 @@ public class TunerConstants {
 
   // The remote sensor feedback type to use for the steer motors;
   // When not Pro-licensed, Fused*/Sync* automatically fall back to Remote*
-  private static final SteerFeedbackType kSteerFeedbackType = SteerFeedbackType.RemoteCANcoder;
+  private static final SteerFeedbackType kSteerFeedbackType = SteerFeedbackType.FusedCANcoder;
 
   // The stator current at which the wheels start to slip;
   // This needs to be tuned to your individual robot
@@ -230,7 +230,7 @@ public class TunerConstants {
               kBackRightSteerMotorInverted,
               kBackRightEncoderInverted);
 
-  /** Creates a Swerve instance. This should only be called once in your robot program. */
+  /** Creates a Swerve instance. This should only be called once in your robot program,. */
   public static Swerve createDrivetrain() {
     return new Swerve(DrivetrainConstants, FrontLeft, FrontRight, BackLeft, BackRight);
   }

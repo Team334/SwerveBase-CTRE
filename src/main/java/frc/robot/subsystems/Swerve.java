@@ -8,6 +8,7 @@ import static edu.wpi.first.units.Units.*;
 import static edu.wpi.first.wpilibj2.command.Commands.sequence;
 
 import choreo.trajectory.SwerveSample;
+import com.ctre.phoenix6.SignalLogger;
 import com.ctre.phoenix6.Utils;
 import com.ctre.phoenix6.hardware.CANcoder;
 import com.ctre.phoenix6.hardware.TalonFX;
@@ -15,7 +16,9 @@ import com.ctre.phoenix6.swerve.SwerveDrivetrainConstants;
 import com.ctre.phoenix6.swerve.SwerveModule;
 import com.ctre.phoenix6.swerve.SwerveModule.DriveRequestType;
 import com.ctre.phoenix6.swerve.SwerveModuleConstants;
+import com.ctre.phoenix6.swerve.SwerveRequest;
 import com.ctre.phoenix6.swerve.SwerveRequest.*;
+import com.ctre.phoenix6.swerve.utility.WheelForceCalculator.Feedforwards;
 import dev.doglog.DogLog;
 import edu.wpi.first.epilogue.Logged;
 import edu.wpi.first.epilogue.Logged.Strategy;
@@ -31,6 +34,7 @@ import edu.wpi.first.wpilibj.Notifier;
 import edu.wpi.first.wpilibj.RobotController;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Subsystem;
+import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
 import frc.lib.FaultLogger;
 import frc.lib.FaultsTable;
 import frc.lib.FaultsTable.Fault;
@@ -43,6 +47,7 @@ import frc.robot.Constants.SwerveConstants;
 import frc.robot.Robot;
 import frc.robot.generated.TunerConstants.TunerSwerveDrivetrain;
 import frc.robot.utils.HolonomicController;
+import frc.robot.utils.SysId;
 import frc.robot.utils.VisionPoseEstimator;
 import frc.robot.utils.VisionPoseEstimator.VisionPoseEstimate;
 import java.util.ArrayList;
@@ -63,7 +68,8 @@ public class Swerve extends TunerSwerveDrivetrain implements Subsystem, SelfChec
   // auton request for choreo / pose controller
   private final ApplyFieldSpeeds _fieldSpeedsRequest = new ApplyFieldSpeeds();
 
-  private final HolonomicController _poseController = new HolonomicController();
+  private final HolonomicController _poseController =
+      new HolonomicController(getKinematics().getModules());
 
   private double _lastSimTime = 0;
   private Notifier _simNotifier;
@@ -77,14 +83,63 @@ public class Swerve extends TunerSwerveDrivetrain implements Subsystem, SelfChec
 
   private boolean _hasError = false;
 
-  @Logged(name = "Driver Chassis Speeds")
-  private final ChassisSpeeds _driverChassisSpeeds = new ChassisSpeeds();
+  private final SwerveRequest.SysIdSwerveTranslation _translationCharacterization =
+      new SwerveRequest.SysIdSwerveTranslation();
+  private final SwerveRequest.SysIdSwerveSteerGains _steerCharacterization =
+      new SwerveRequest.SysIdSwerveSteerGains();
+  private final SwerveRequest.SysIdSwerveRotation _rotationCharacterization =
+      new SwerveRequest.SysIdSwerveRotation();
+
+  private final SysIdRoutine _translationRoutine =
+      new SysIdRoutine(
+          new SysIdRoutine.Config(
+              null, // Use default ramp rate (1 V/s)
+              Volts.of(4), // Reduce dynamic step voltage to 4 V to prevent brownout
+              null, // Use default timeout (10 s)
+              // Log state with SignalLogger class
+              state -> SignalLogger.writeString("state", state.toString())),
+          new SysIdRoutine.Mechanism(
+              output -> setControl(_translationCharacterization.withVolts(output)), null, this));
+
+  private final SysIdRoutine _steerRoutine =
+      new SysIdRoutine(
+          new SysIdRoutine.Config(
+              null, // Use default ramp rate (1 V/s)
+              Volts.of(7), // Use dynamic voltage of 7 V
+              null, // Use default timeout (10 s)
+              // Log state with SignalLogger class
+              state -> SignalLogger.writeString("state", state.toString())),
+          new SysIdRoutine.Mechanism(
+              volts -> setControl(_steerCharacterization.withVolts(volts)), null, this));
+
+  private final SysIdRoutine _rotationRoutine =
+      new SysIdRoutine(
+          new SysIdRoutine.Config(
+              /* This is in radians per second², but SysId only supports "volts per second" */
+              Volts.of(Math.PI / 6).per(Second),
+              /* This is in radians per second, but SysId only supports "volts" */
+              Volts.of(Math.PI),
+              null, // Use default timeout (10 s)
+              // Log state with SignalLogger class
+              state -> SignalLogger.writeString("state", state.toString())),
+          new SysIdRoutine.Mechanism(
+              output -> {
+                // output is actually radians per second, but SysId only supports "volts"
+                setControl(_rotationCharacterization.withRotationalRate(output.in(Volts)));
+                // also log the requested output for SysId
+                SignalLogger.writeDouble("rotational rate", output.in(Volts));
+              },
+              null,
+              this));
 
   @Logged(name = "Is Field Oriented")
-  private boolean _isFieldOriented = true;
+  public boolean isFieldOriented = true;
 
   @Logged(name = "Is Open Loop")
-  private boolean _isOpenLoop = true;
+  public boolean isOpenLoop = true;
+
+  @Logged(name = "Driver Chassis Speeds")
+  private final ChassisSpeeds _driverChassisSpeeds = new ChassisSpeeds();
 
   @Logged(name = "Ignore Vision Estimates")
   private boolean _ignoreVisionEstimates = false;
@@ -103,7 +158,7 @@ public class Swerve extends TunerSwerveDrivetrain implements Subsystem, SelfChec
   private boolean _hasAppliedDriverPerspective = false;
 
   /**
-   * Creates a new CommandSwerveDrivetrain.
+   * Creates a new Swerve.
    *
    * @param drivetrainConstants The CTRE {@link SwerveDrivetrainConstants}. These involve the CAN
    *     Bus name and the Pigeon Id.
@@ -142,6 +197,10 @@ public class Swerve extends TunerSwerveDrivetrain implements Subsystem, SelfChec
           DogLog.log("Swerve/Odometry Success %", state.SuccessfulDaqs / totalDaqs * 100);
           DogLog.log("Swerve/Odometry Period", state.OdometryPeriod);
         });
+
+    SysId.displayRoutine("Swerve Translation", _translationRoutine);
+    SysId.displayRoutine("Swerve Steer", _steerRoutine);
+    SysId.displayRoutine("Swerve Rotation", _rotationRoutine);
 
     registerFallibles();
 
@@ -242,14 +301,14 @@ public class Swerve extends TunerSwerveDrivetrain implements Subsystem, SelfChec
             });
 
     _simNotifier.setName("Swerve Sim Thread");
-    _simNotifier.startPeriodic(1 / Constants.simUpdateFrequency.in(Hertz));
+    _simNotifier.startPeriodic(1 / Constants.simNotifierFrequency.in(Hertz));
   }
 
   /** Toggles the field oriented boolean. */
   public Command toggleFieldOriented() {
     return brake()
         .withTimeout(0.5)
-        .andThen(runOnce(() -> _isFieldOriented = !_isFieldOriented))
+        .andThen(runOnce(() -> isFieldOriented = !isFieldOriented))
         .withName("Toggle Field Oriented");
   }
 
@@ -288,8 +347,8 @@ public class Swerve extends TunerSwerveDrivetrain implements Subsystem, SelfChec
   }
 
   /**
-   * Drives the swerve drive. Open loop/field oriented behavior is configured with {@link
-   * #_isOpenLoop} and {@link #_isFieldOriented}.
+   * Drives the swerve drive. Open loop / field oriented behavior is configured with {@link
+   * #isOpenLoop} and {@link #isFieldOriented}.
    *
    * @param velX The x velocity in meters per second.
    * @param velY The y velocity in meters per second.
@@ -300,14 +359,14 @@ public class Swerve extends TunerSwerveDrivetrain implements Subsystem, SelfChec
     _driverChassisSpeeds.vyMetersPerSecond = velY;
     _driverChassisSpeeds.omegaRadiansPerSecond = velOmega;
 
-    if (_isFieldOriented) {
+    if (isFieldOriented) {
       setControl(
           _fieldCentricRequest
               .withVelocityX(velX)
               .withVelocityY(velY)
               .withRotationalRate(velOmega)
               .withDriveRequestType(
-                  _isOpenLoop ? DriveRequestType.OpenLoopVoltage : DriveRequestType.Velocity));
+                  isOpenLoop ? DriveRequestType.OpenLoopVoltage : DriveRequestType.Velocity));
     } else {
       setControl(
           _robotCentricRequest
@@ -315,12 +374,12 @@ public class Swerve extends TunerSwerveDrivetrain implements Subsystem, SelfChec
               .withVelocityY(velY)
               .withRotationalRate(velOmega)
               .withDriveRequestType(
-                  _isOpenLoop ? DriveRequestType.OpenLoopVoltage : DriveRequestType.Velocity));
+                  isOpenLoop ? DriveRequestType.OpenLoopVoltage : DriveRequestType.Velocity));
     }
   }
 
   /**
-   * Sets the chassis state to the given {@link SwerveSample} to aid trajectory following.
+   * Sets the chassis state to the given {@link SwerveSample} for trajectory following.
    *
    * @param sample The SwerveSample.
    */
@@ -346,8 +405,13 @@ public class Swerve extends TunerSwerveDrivetrain implements Subsystem, SelfChec
   public Command driveTo(Supplier<Pose2d> goalPose) {
     return run(() -> {
           ChassisSpeeds speeds = _poseController.calculate(getPose());
+          Feedforwards wheelForces = _poseController.getWheelForces();
 
-          setControl(_fieldSpeedsRequest.withSpeeds(speeds));
+          setControl(
+              _fieldSpeedsRequest
+                  .withSpeeds(speeds)
+                  .withWheelForceFeedforwardsX(wheelForces.x_newtons)
+                  .withWheelForceFeedforwardsY(wheelForces.y_newtons));
         })
         .beforeStarting(
             () ->
