@@ -132,14 +132,14 @@ public class Swerve extends TunerSwerveDrivetrain implements Subsystem, SelfChec
               null,
               this));
 
-  @Logged(name = "Driver Chassis Speeds")
-  private final ChassisSpeeds _driverChassisSpeeds = new ChassisSpeeds();
-
   @Logged(name = "Is Field Oriented")
   public boolean isFieldOriented = true;
 
   @Logged(name = "Is Open Loop")
   public boolean isOpenLoop = true;
+
+  @Logged(name = "Driver Chassis Speeds")
+  private final ChassisSpeeds _driverChassisSpeeds = new ChassisSpeeds();
 
   @Logged(name = "Ignore Vision Estimates")
   private boolean _ignoreVisionEstimates = false;
@@ -347,7 +347,7 @@ public class Swerve extends TunerSwerveDrivetrain implements Subsystem, SelfChec
   }
 
   /**
-   * Drives the swerve drive. Open loop/field oriented behavior is configured with {@link
+   * Drives the swerve drive. Open loop / field oriented behavior is configured with {@link
    * #isOpenLoop} and {@link #isFieldOriented}.
    *
    * @param velX The x velocity in meters per second.
@@ -379,7 +379,7 @@ public class Swerve extends TunerSwerveDrivetrain implements Subsystem, SelfChec
   }
 
   /**
-   * Sets the chassis state to the given {@link SwerveSample} to aid trajectory following.
+   * Sets the chassis state to the given {@link SwerveSample} for trajectory following.
    *
    * @param sample The SwerveSample.
    */

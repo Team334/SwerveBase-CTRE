@@ -12,8 +12,8 @@ import edu.wpi.first.math.geometry.Rotation3d;
 import edu.wpi.first.math.geometry.Transform3d;
 import edu.wpi.first.math.geometry.Translation3d;
 import edu.wpi.first.math.util.Units;
+import frc.robot.Constants.VisionConstants;
 import frc.robot.utils.VisionPoseEstimator;
-import frc.robot.utils.VisionPoseEstimator.SingleTagEstimate;
 import frc.robot.utils.VisionPoseEstimator.VisionPoseEstimate;
 import frc.robot.utils.VisionPoseEstimator.VisionPoseEstimatorConstants;
 import java.util.ArrayList;
@@ -65,7 +65,6 @@ public class VisionPoseEstimatorTest {
         new VisionPoseEstimatorConstants(
             "test-cam",
             new Transform3d(new Translation3d(0, 0, 1), new Rotation3d()),
-            0.2,
             0.0001,
             3,
             5);
@@ -259,7 +258,7 @@ public class VisionPoseEstimatorTest {
 
     assertFalse(estimate.isValid());
 
-    assert estimate.ambiguity() > _testCam.ambiguityThreshold;
+    assert estimate.ambiguity() > VisionConstants.ambiguityThreshold;
 
     // should see only ID 5
     assertArrayEquals(new int[] {5}, estimate.detectedTags());
@@ -382,7 +381,6 @@ public class VisionPoseEstimatorTest {
               0.03,
               Pose3d.kZero,
               new int[] {1},
-              new SingleTagEstimate[0],
               1.2,
               new double[] {0.3, 0.1, 0.2},
               true));
@@ -395,7 +393,6 @@ public class VisionPoseEstimatorTest {
             0.03,
             Pose3d.kZero,
             new int[] {1},
-            new SingleTagEstimate[0],
             1.2,
             new double[] {
               4, 3, 5

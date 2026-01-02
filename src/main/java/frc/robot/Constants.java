@@ -42,8 +42,9 @@ public final class Constants {
   }
 
   public static class VisionConstants {
-    public static final double[] singleTagBaseStdDevs = new double[] {5, 5, 5};
-    public static final double[] multiTagBaseStdDevs = new double[] {1, 1, 1};
+    public static final double singleTagStdDevsScaler = 5;
+
+    public static final double ambiguityThreshold = 0.2;
 
     public static final double xBoundMargin = 0.01;
     public static final double yBoundMargin = 0.01;
