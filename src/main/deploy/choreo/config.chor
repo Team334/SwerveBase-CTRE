@@ -1,6 +1,6 @@
 {
  "name":"config",
- "version":1,
+ "version":2,
  "type":"Swerve",
  "variables":{
   "expressions":{},
@@ -9,47 +9,47 @@
  "config":{
   "frontLeft":{
    "x":{
-    "exp":"10.5 in",
-    "val":0.2667
+    "exp":"11 in",
+    "val":0.2794
    },
    "y":{
-    "exp":"10.5 in",
-    "val":0.2667
+    "exp":"11 in",
+    "val":0.2794
    }
   },
   "backLeft":{
    "x":{
-    "exp":"-10.5 in",
-    "val":-0.2667
+    "exp":"-11 in",
+    "val":-0.2794
    },
    "y":{
-    "exp":"10.5 in",
-    "val":0.2667
+    "exp":"11 in",
+    "val":0.2794
    }
   },
   "mass":{
-   "exp":"75 lbs",
-   "val":34.01942775
+   "exp":"150 lbs",
+   "val":68.0388555
   },
   "inertia":{
-   "exp":"6.883 kg m ^ 2",
-   "val":6.883
+   "exp":"6 kg m ^ 2",
+   "val":6.0
   },
   "gearing":{
-   "exp":"7.363636364",
-   "val":7.363636364
+   "exp":"6.5",
+   "val":6.5
   },
   "radius":{
-   "exp":"2.167 in",
-   "val":0.055041799999999995
+   "exp":"2 in",
+   "val":0.0508
   },
   "vmax":{
-   "exp":"485.89966375522135 rad / s",
-   "val":485.8996637552213
+   "exp":"6000 RPM",
+   "val":628.3185307179587
   },
   "tmax":{
-   "exp":"2.327950310559006 N m",
-   "val":2.327950310559006
+   "exp":"1.2 N * m",
+   "val":1.2
   },
   "cof":{
    "exp":"1.5",
@@ -74,5 +74,11 @@
    "val":0.5588
   }
  },
- "generationFeatures":[]
+ "generationFeatures":[],
+ "codegen":{
+  "root":null,
+  "genVars":true,
+  "genTrajData":true,
+  "useChoreoLib":true
+ }
 }
