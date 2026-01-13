@@ -519,7 +519,7 @@ public class Swerve extends TunerSwerveDrivetrain implements Subsystem, SelfChec
 
   @Override
   public void simulationPeriodic() {
-    _visionSystemSim.update(getPose()); // TODO: odom only?
+    // _visionSystemSim.update(getPose()); // TODO: odom only?
   }
 
   // TODO: add self check routines

@@ -23,7 +23,6 @@ import java.util.function.Function;
 import org.photonvision.EstimatedRobotPose;
 import org.photonvision.PhotonCamera;
 import org.photonvision.PhotonPoseEstimator;
-import org.photonvision.PhotonPoseEstimator.PoseStrategy;
 import org.photonvision.simulation.PhotonCameraSim;
 import org.photonvision.simulation.SimCameraProperties;
 import org.photonvision.targeting.PhotonTrackedTarget;
@@ -212,11 +211,7 @@ public class VisionPoseEstimator implements AutoCloseable {
 
     _camera = new PhotonCamera(ntInst, camName);
 
-    _poseEstimator =
-        new PhotonPoseEstimator(fieldLayout, PoseStrategy.MULTI_TAG_PNP_ON_COPROCESSOR, robotToCam);
-
-    // this is actually "closest-to-gyro" in the robot code
-    _poseEstimator.setMultiTagFallbackStrategy(PoseStrategy.LOWEST_AMBIGUITY);
+    _poseEstimator = new PhotonPoseEstimator(fieldLayout, robotToCam);
 
     _estimateLogPath = "Swerve/" + camName + "/Estimate/";
 
@@ -417,7 +412,12 @@ public class VisionPoseEstimator implements AutoCloseable {
     var results = _camera.getAllUnreadResults();
 
     for (var result : results) {
-      var est = _poseEstimator.update(result);
+      var est = _poseEstimator.estimateCoprocMultiTagPose(result);
+
+      if (est.isEmpty())
+        est =
+            _poseEstimator.estimateLowestAmbiguityPose(
+                result); // this is actually "closest-to-gyro" in the robot code
 
       if (est.isPresent()) {
         var newEstimate = processEstimate(est.get(), _gyroAtTime.apply(est.get().timestampSeconds));
