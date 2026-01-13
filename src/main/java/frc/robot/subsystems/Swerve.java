@@ -314,7 +314,7 @@ public class Swerve extends TunerSwerveDrivetrain implements Subsystem, SelfChec
 
   /** Brakes the swerve drive (modules form an "X" formation). */
   public Command brake() {
-    return run(() -> setControl(_brakeRequest)).withName("Brake ");
+    return run(() -> setControl(_brakeRequest)).withName("Brake");
   }
 
   /** Resets the heading to face away from the alliance wall. */
