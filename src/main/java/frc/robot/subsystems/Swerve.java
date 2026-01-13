@@ -22,7 +22,9 @@ import com.ctre.phoenix6.swerve.utility.WheelForceCalculator.Feedforwards;
 import dev.doglog.DogLog;
 import edu.wpi.first.epilogue.Logged;
 import edu.wpi.first.epilogue.Logged.Strategy;
+import edu.wpi.first.math.VecBuilder;
 import edu.wpi.first.math.geometry.Pose2d;
+import edu.wpi.first.math.geometry.Pose3d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.networktables.NetworkTableInstance;
@@ -40,18 +42,20 @@ import frc.lib.FaultsTable.FaultType;
 import frc.lib.InputStream;
 import frc.lib.SelfChecked;
 import frc.robot.Constants;
+import frc.robot.Constants.FieldConstants;
 import frc.robot.Constants.SwerveConstants;
 import frc.robot.Robot;
 import frc.robot.generated.TunerConstants.TunerSwerveDrivetrain;
 import frc.robot.utils.HolonomicController;
 import frc.robot.utils.SysId;
-// import frc.robot.utils.VisionPoseEstimator;
-// import frc.robot.utils.VisionPoseEstimator.VisionPoseEstimate;
+import frc.robot.utils.VisionPoseEstimator;
+import frc.robot.utils.VisionPoseEstimator.VisionPoseEstimate;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.function.Supplier;
-
-// import org.photonvision.simulation.VisionSystemSim;
+import org.photonvision.simulation.VisionSystemSim;
 
 @Logged(strategy = Strategy.OPT_IN)
 public class Swerve extends TunerSwerveDrivetrain implements Subsystem, SelfChecked {
@@ -140,16 +144,16 @@ public class Swerve extends TunerSwerveDrivetrain implements Subsystem, SelfChec
   @Logged(name = "Ignore Vision Estimates")
   private boolean _ignoreVisionEstimates = false;
 
-  // private final List<VisionPoseEstimator> _cameras = List.of();
+  private final List<VisionPoseEstimator> _cameras = List.of();
 
-  // private final List<VisionPoseEstimate> _newEstimates = new ArrayList<>();
+  private final List<VisionPoseEstimate> _newEstimates = new ArrayList<>();
 
-  // private final List<VisionPoseEstimate> _acceptedEstimates = new ArrayList<>();
-  // private final List<VisionPoseEstimate> _rejectedEstimates = new ArrayList<>();
+  private final List<VisionPoseEstimate> _acceptedEstimates = new ArrayList<>();
+  private final List<VisionPoseEstimate> _rejectedEstimates = new ArrayList<>();
 
-  // private final Set<Pose3d> _detectedTags = new HashSet<>();
+  private final Set<Pose3d> _detectedTags = new HashSet<>();
 
-  // private final VisionSystemSim _visionSystemSim;
+  private final VisionSystemSim _visionSystemSim;
 
   private boolean _hasAppliedDriverPerspective = false;
 
@@ -203,12 +207,12 @@ public class Swerve extends TunerSwerveDrivetrain implements Subsystem, SelfChec
     if (Robot.isSimulation()) {
       startSimThread();
 
-      // _visionSystemSim = new VisionSystemSim("main");
-      // _visionSystemSim.addAprilTags(FieldConstants.tagLayout);
+      _visionSystemSim = new VisionSystemSim("main");
+      _visionSystemSim.addAprilTags(FieldConstants.tagLayout);
 
-      // _cameras.forEach(cam -> _visionSystemSim.addCamera(cam.getCameraSim(), cam.robotToCam));
+      _cameras.forEach(cam -> _visionSystemSim.addCamera(cam.getCameraSim(), cam.robotToCam));
     } else {
-      // _visionSystemSim = null;
+      _visionSystemSim = null;
     }
   }
 
@@ -440,42 +444,42 @@ public class Swerve extends TunerSwerveDrivetrain implements Subsystem, SelfChec
   }
 
   // updates pose estimator with vision
-  // private void updateVisionPoseEstimates() {
-  //   _newEstimates.clear();
+  private void updateVisionPoseEstimates() {
+    _newEstimates.clear();
 
-  //   _acceptedEstimates.clear();
-  //   _rejectedEstimates.clear();
+    _acceptedEstimates.clear();
+    _rejectedEstimates.clear();
 
-  //   _detectedTags.clear();
+    _detectedTags.clear();
 
-  //   for (VisionPoseEstimator cam : _cameras) {
-  //     cam.update();
+    for (VisionPoseEstimator cam : _cameras) {
+      cam.update();
 
-  //     var estimates = cam.getNewEstimates();
+      var estimates = cam.getNewEstimates();
 
-  //     // add estimates to arrays and update detected tags
-  //     estimates.forEach(
-  //         (estimate) -> {
-  //           // add all detected tag poses
-  //           for (int id : estimate.detectedTags()) {
-  //             FieldConstants.tagLayout.getTagPose(id).ifPresent(pose -> _detectedTags.add(pose));
-  //           }
+      // add estimates to arrays and update detected tags
+      estimates.forEach(
+          (estimate) -> {
+            // add all detected tag poses
+            for (int id : estimate.detectedTags()) {
+              FieldConstants.tagLayout.getTagPose(id).ifPresent(pose -> _detectedTags.add(pose));
+            }
 
-  //           // add robot poses to their corresponding arrays
-  //           if (estimate.isValid()) _acceptedEstimates.add(estimate);
-  //           else _rejectedEstimates.add(estimate);
-  //         });
+            // add robot poses to their corresponding arrays
+            if (estimate.isValid()) _acceptedEstimates.add(estimate);
+            else _rejectedEstimates.add(estimate);
+          });
 
-  //     _newEstimates.addAll(_acceptedEstimates);
-  //     _newEstimates.addAll(_rejectedEstimates);
-  //   }
-  // }
+      _newEstimates.addAll(_acceptedEstimates);
+      _newEstimates.addAll(_rejectedEstimates);
+    }
+  }
 
   @Override
   public void periodic() {
     DogLog.time("Timing/Swerve/periodic()");
 
-    // updateVisionPoseEstimates();
+    updateVisionPoseEstimates();
 
     if (!_hasAppliedDriverPerspective || DriverStation.isDisabled()) {
       DriverStation.getAlliance()
@@ -488,27 +492,27 @@ public class Swerve extends TunerSwerveDrivetrain implements Subsystem, SelfChec
               });
     }
 
-    // DogLog.log(
-    //     "Swerve/Accepted Estimates",
-    //     _acceptedEstimates.stream().map(VisionPoseEstimate::pose).toArray(Pose3d[]::new));
-    // DogLog.log(
-    //     "Swerve/Rejected Estimates",
-    //     _rejectedEstimates.stream().map(VisionPoseEstimate::pose).toArray(Pose3d[]::new));
+    DogLog.log(
+        "Swerve/Accepted Estimates",
+        _acceptedEstimates.stream().map(VisionPoseEstimate::pose).toArray(Pose3d[]::new));
+    DogLog.log(
+        "Swerve/Rejected Estimates",
+        _rejectedEstimates.stream().map(VisionPoseEstimate::pose).toArray(Pose3d[]::new));
 
-    // DogLog.log("Swerve/Detected Tags", _detectedTags.toArray(Pose3d[]::new));
+    DogLog.log("Swerve/Detected Tags", _detectedTags.toArray(Pose3d[]::new));
 
-    // if (!_ignoreVisionEstimates) {
-    //   _acceptedEstimates.sort(VisionPoseEstimate.sorter);
+    if (!_ignoreVisionEstimates) {
+      _acceptedEstimates.sort(VisionPoseEstimate.sorter);
 
-    //   _acceptedEstimates.forEach(
-    //       (e) -> {
-    //         var stdDevs = e.stdDevs();
-    //         addVisionMeasurement(
-    //             e.pose().toPose2d(),
-    //             Utils.fpgaToCurrentTime(e.timestamp()),
-    //             VecBuilder.fill(stdDevs[0], stdDevs[1], stdDevs[2]));
-    //       });
-    // }
+      _acceptedEstimates.forEach(
+          (e) -> {
+            var stdDevs = e.stdDevs();
+            addVisionMeasurement(
+                e.pose().toPose2d(),
+                Utils.fpgaToCurrentTime(e.timestamp()),
+                VecBuilder.fill(stdDevs[0], stdDevs[1], stdDevs[2]));
+          });
+    }
 
     DogLog.timeEnd("Timing/Swerve/periodic()");
   }
@@ -537,7 +541,7 @@ public class Swerve extends TunerSwerveDrivetrain implements Subsystem, SelfChec
   public void close() {
     super.close();
 
-    // _cameras.forEach(c -> c.close());
+    _cameras.forEach(c -> c.close());
 
     _simNotifier.close();
   }
