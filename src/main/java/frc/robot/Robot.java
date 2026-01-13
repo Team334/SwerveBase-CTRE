@@ -17,6 +17,8 @@ import edu.wpi.first.epilogue.Logged.Strategy;
 import edu.wpi.first.epilogue.logging.EpilogueBackend;
 import edu.wpi.first.epilogue.logging.FileBackend;
 import edu.wpi.first.epilogue.logging.NTEpilogueBackend;
+import edu.wpi.first.math.geometry.Pose2d;
+import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.util.ClassPreloader;
 import edu.wpi.first.wpilibj.DataLogManager;
@@ -101,6 +103,10 @@ public class Robot extends TimedRobot {
 
     SmartDashboard.putData(
         runOnce(FaultLogger::clear).ignoringDisable(true).withName("Clear Faults"));
+
+    SmartDashboard.putData("Reset Pose", runOnce(() -> _swerve.resetPose(Pose2d.kZero)));
+    SmartDashboard.putData(
+        "Drive 4.433 meters", _swerve.driveTo(new Pose2d(4.433, 0, Rotation2d.kZero)));
 
     addPeriodic(FaultLogger::update, 1);
 
