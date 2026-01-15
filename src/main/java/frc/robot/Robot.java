@@ -34,7 +34,6 @@ import frc.lib.InputStream;
 import frc.robot.Constants.Ports;
 import frc.robot.Constants.SwerveConstants;
 import frc.robot.commands.Autos;
-import frc.robot.commands.WheelRadiusCharacterization;
 import frc.robot.generated.TunerConstants;
 import frc.robot.subsystems.Swerve;
 import java.lang.reflect.Field;
@@ -90,8 +89,7 @@ public class Robot extends TimedRobot {
 
     configureDriverBindings();
 
-    SmartDashboard.putData(
-        "Wheel Radius Characterization", new WheelRadiusCharacterization(_swerve));
+    SmartDashboard.putData("Wheel Radius Characterization", _swerve.wheelRadiusCharacterization());
 
     SmartDashboard.putData(
         "Robot Self Check",
@@ -106,7 +104,7 @@ public class Robot extends TimedRobot {
 
     SmartDashboard.putData("Reset Pose", runOnce(() -> _swerve.resetPose(Pose2d.kZero)));
     SmartDashboard.putData(
-        "Drive 4.433 meters", _swerve.driveTo(new Pose2d(4.433, 0, Rotation2d.kZero)));
+        "Drive 4.4194 meters", _swerve.driveTo(new Pose2d(4.4194, 0, Rotation2d.kZero)));
 
     addPeriodic(FaultLogger::update, 1);
 

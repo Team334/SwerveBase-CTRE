@@ -69,7 +69,7 @@ public final class Constants {
         RadiansPerSecondPerSecond.of(Math.PI * 2);
 
     public static final Per<LinearVelocityUnit, DistanceUnit> poseTranslationalkP =
-        MetersPerSecond.per(Meter).ofNative(0);
+        MetersPerSecond.per(Meter).ofNative(1.8);
     public static final Per<AngularVelocityUnit, AngleUnit> poseRotationkP =
         RadiansPerSecond.per(Radian).ofNative(0);
 
