@@ -23,16 +23,23 @@ import dev.doglog.DogLog;
 import edu.wpi.first.epilogue.Logged;
 import edu.wpi.first.epilogue.Logged.Strategy;
 import edu.wpi.first.math.VecBuilder;
+import edu.wpi.first.math.filter.SlewRateLimiter;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Pose3d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
+import edu.wpi.first.math.kinematics.SwerveModulePosition;
+import edu.wpi.first.math.util.Units;
 import edu.wpi.first.networktables.NetworkTableInstance;
+import edu.wpi.first.units.measure.AngularAcceleration;
+import edu.wpi.first.units.measure.AngularVelocity;
+import edu.wpi.first.units.measure.Distance;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj.Notifier;
 import edu.wpi.first.wpilibj.RobotController;
 import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.Subsystem;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
 import frc.lib.FaultLogger;
@@ -45,6 +52,7 @@ import frc.robot.Constants;
 import frc.robot.Constants.FieldConstants;
 import frc.robot.Constants.SwerveConstants;
 import frc.robot.Robot;
+import frc.robot.generated.TunerConstants;
 import frc.robot.generated.TunerConstants.TunerSwerveDrivetrain;
 import frc.robot.utils.HolonomicController;
 import frc.robot.utils.SysId;
@@ -333,7 +341,7 @@ public class Swerve extends TunerSwerveDrivetrain implements Subsystem, SelfChec
   }
 
   /**
-   * Creates a new Command that drives the chassis.
+   * Creates a new command that drives the chassis in teleop.
    *
    * @param velX The x velocity in meters per second.
    * @param velY The y velocity in meters per second.
@@ -347,7 +355,7 @@ public class Swerve extends TunerSwerveDrivetrain implements Subsystem, SelfChec
   }
 
   /**
-   * Drives the swerve drive. Open loop / field oriented behavior is configured with {@link
+   * Drives the chassis in teleop. Open loop / field oriented behavior is configured with {@link
    * #isOpenLoop} and {@link #isFieldOriented}.
    *
    * @param velX The x velocity in meters per second.
@@ -520,6 +528,96 @@ public class Swerve extends TunerSwerveDrivetrain implements Subsystem, SelfChec
   @Override
   public void simulationPeriodic() {
     // _visionSystemSim.update(getPose()); // TODO: odom only?
+  }
+
+  // returns the distance traveled by each individual drive wheel in radians
+  private double[] getWheelDistancesRadians() {
+    SwerveModulePosition[] positions = getState().ModulePositions;
+
+    double[] distances = new double[4];
+
+    for (int i = 0; i < getModules().length; i++) {
+      // radians = (meters / radius)
+      distances[i] = positions[i].distanceMeters / TunerConstants.FrontLeft.WheelRadius;
+    }
+
+    return distances;
+  }
+
+  private class WheelRadiusCharacterizationState {
+    double[] positions = new double[4];
+    Rotation2d lastAngle = Rotation2d.kZero;
+    double gyroDelta = 0.0;
+  }
+
+  /** Measures the robot's wheel radius by spinning in a circle. */
+  public Command wheelRadiusCharacterization() {
+    final Distance driveRadius =
+        Meters.of(
+            Math.sqrt(
+                Math.pow(TunerConstants.FrontLeft.LocationX, 2)
+                    + Math.pow(TunerConstants.FrontLeft.LocationY, 2)));
+
+    final AngularAcceleration angularAcceleration = RadiansPerSecondPerSecond.of(0.05);
+    final AngularVelocity angularVelocity = RadiansPerSecond.of(0.25);
+
+    SlewRateLimiter limiter =
+        new SlewRateLimiter(angularAcceleration.in(RadiansPerSecondPerSecond));
+    WheelRadiusCharacterizationState state = new WheelRadiusCharacterizationState();
+
+    return Commands.parallel(
+            // Drive control sequence
+            Commands.sequence(
+                // Reset acceleration limiter
+                Commands.runOnce(
+                    () -> {
+                      limiter.reset(0.0);
+                    }),
+
+                // Turn in place, accelerating up to full speed
+                run(
+                    () -> {
+                      double speed = limiter.calculate(angularVelocity.in(RadiansPerSecond));
+                      setControl(_fieldSpeedsRequest.withSpeeds(new ChassisSpeeds(0, 0, speed)));
+                    })),
+
+            // Measurement sequence
+            Commands.sequence(
+                // Wait for modules to fully orient before starting measurement
+                Commands.waitSeconds(1.5),
+
+                // Record starting measurement
+                Commands.runOnce(
+                    () -> {
+                      state.positions = getWheelDistancesRadians();
+                      state.lastAngle = getHeading();
+                      state.gyroDelta = 0.0;
+                    }),
+
+                // Update gyro delta
+                Commands.run(
+                        () -> {
+                          var rotation = getHeading();
+                          state.gyroDelta += Math.abs(rotation.minus(state.lastAngle).getRadians());
+                          state.lastAngle = rotation;
+                        })
+
+                    // When cancelled, calculate and print results
+                    .finallyDo(
+                        () -> {
+                          double[] positions = getWheelDistancesRadians();
+                          double wheelDelta = 0.0;
+                          for (int i = 0; i < 4; i++) {
+                            wheelDelta += Math.abs(positions[i] - state.positions[i]) / 4.0;
+                          }
+                          double wheelRadius =
+                              (state.gyroDelta * driveRadius.in(Meters)) / wheelDelta;
+
+                          FaultLogger.report(
+                              "Wheel Radius Inches: " + Units.metersToInches(wheelRadius),
+                              FaultType.INFO);
+                        })))
+        .withName("Wheel Radius Characterization");
   }
 
   // TODO: add self check routines

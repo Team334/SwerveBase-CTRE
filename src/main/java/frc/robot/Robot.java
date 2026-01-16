@@ -32,7 +32,6 @@ import frc.lib.InputStream;
 import frc.robot.Constants.Ports;
 import frc.robot.Constants.SwerveConstants;
 import frc.robot.commands.Autos;
-import frc.robot.commands.WheelRadiusCharacterization;
 import frc.robot.generated.TunerConstants;
 import frc.robot.subsystems.Swerve;
 import java.lang.reflect.Field;
@@ -88,8 +87,7 @@ public class Robot extends TimedRobot {
 
     configureDriverBindings();
 
-    SmartDashboard.putData(
-        "Wheel Radius Characterization", new WheelRadiusCharacterization(_swerve));
+    SmartDashboard.putData("Wheel Radius Characterization", _swerve.wheelRadiusCharacterization());
 
     SmartDashboard.putData(
         "Robot Self Check",
