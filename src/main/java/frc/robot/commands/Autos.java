@@ -41,4 +41,14 @@ public class Autos {
 
     return routine;
   }
+
+  public AutoRoutine mrc() {
+    AutoRoutine routine = _factory.newRoutine("mrc");
+
+    AutoTrajectory exampleTraj = routine.trajectory("mrc");
+
+    routine.active().onTrue(sequence(exampleTraj.resetOdometry(), exampleTraj.cmd()));
+
+    return routine;
+  }
 }

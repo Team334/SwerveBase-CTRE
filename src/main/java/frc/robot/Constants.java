@@ -71,7 +71,7 @@ public final class Constants {
     public static final Per<LinearVelocityUnit, DistanceUnit> poseTranslationalkP =
         MetersPerSecond.per(Meter).ofNative(1.8);
     public static final Per<AngularVelocityUnit, AngleUnit> poseRotationkP =
-        RadiansPerSecond.per(Radian).ofNative(0);
+        RadiansPerSecond.per(Radian).ofNative(1.2);
 
     public static LinearVelocity translationalDeadband = MetersPerSecond.of(0.01);
     public static AngularVelocity rotationalDeadband = RadiansPerSecond.of(0.01);
