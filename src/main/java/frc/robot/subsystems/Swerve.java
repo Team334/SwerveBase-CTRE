@@ -51,6 +51,7 @@ import frc.lib.SelfChecked;
 import frc.robot.Constants;
 import frc.robot.Constants.FieldConstants;
 import frc.robot.Constants.SwerveConstants;
+import frc.robot.Constants.VisionConstants;
 import frc.robot.Robot;
 import frc.robot.generated.TunerConstants;
 import frc.robot.generated.TunerConstants.TunerSwerveDrivetrain;
@@ -152,7 +153,15 @@ public class Swerve extends TunerSwerveDrivetrain implements Subsystem, SelfChec
   @Logged(name = "Ignore Vision Estimates")
   private boolean _ignoreVisionEstimates = false;
 
-  private final List<VisionPoseEstimator> _cameras = List.of();
+  @Logged(name = VisionConstants.leftArducamName)
+  private final VisionPoseEstimator _leftArducam =
+      VisionPoseEstimator.buildFromConstants(VisionConstants.leftArducam, this::getHeadingAtTime);
+
+  @Logged(name = VisionConstants.rightArducamName)
+  private final VisionPoseEstimator _rightArducam =
+      VisionPoseEstimator.buildFromConstants(VisionConstants.rightArducam, this::getHeadingAtTime);
+
+  private final List<VisionPoseEstimator> _cameras = List.of(_leftArducam, _rightArducam);
 
   private final List<VisionPoseEstimate> _newEstimates = new ArrayList<>();
 
@@ -217,6 +226,16 @@ public class Swerve extends TunerSwerveDrivetrain implements Subsystem, SelfChec
 
       _visionSystemSim = new VisionSystemSim("main");
       _visionSystemSim.addAprilTags(FieldConstants.tagLayout);
+
+      _leftArducam
+          .getCameraSim()
+          .prop
+          .setCalibration(800, 600, Rotation2d.fromDegrees(72.7315316587));
+
+      _rightArducam
+          .getCameraSim()
+          .prop
+          .setCalibration(800, 600, Rotation2d.fromDegrees(72.7315316587));
 
       _cameras.forEach(cam -> _visionSystemSim.addCamera(cam.getCameraSim(), cam.robotToCam));
     } else {
@@ -527,7 +546,7 @@ public class Swerve extends TunerSwerveDrivetrain implements Subsystem, SelfChec
 
   @Override
   public void simulationPeriodic() {
-    // _visionSystemSim.update(getPose()); // TODO: odom only?
+    _visionSystemSim.update(getPose()); // TODO: odom only?
   }
 
   // returns the distance traveled by each individual drive wheel in radians

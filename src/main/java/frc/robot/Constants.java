@@ -8,6 +8,10 @@ import static edu.wpi.first.units.Units.*;
 
 import edu.wpi.first.apriltag.AprilTagFieldLayout;
 import edu.wpi.first.apriltag.AprilTagFields;
+import edu.wpi.first.math.geometry.Rotation3d;
+import edu.wpi.first.math.geometry.Transform3d;
+import edu.wpi.first.math.geometry.Translation3d;
+import edu.wpi.first.math.util.Units;
 import edu.wpi.first.units.AngleUnit;
 import edu.wpi.first.units.AngularVelocityUnit;
 import edu.wpi.first.units.DistanceUnit;
@@ -20,6 +24,7 @@ import edu.wpi.first.units.measure.LinearVelocity;
 import edu.wpi.first.units.measure.Mass;
 import edu.wpi.first.units.measure.MomentOfInertia;
 import edu.wpi.first.units.measure.Per;
+import frc.robot.utils.VisionPoseEstimator.VisionPoseEstimatorConstants;
 
 /**
  * The Constants class provides a convenient place for teams to hold robot-wide numerical or boolean
@@ -38,7 +43,7 @@ public final class Constants {
 
   public static class FieldConstants {
     public static final AprilTagFieldLayout tagLayout =
-        AprilTagFieldLayout.loadField(AprilTagFields.k2025ReefscapeWelded);
+        AprilTagFieldLayout.loadField(AprilTagFields.k2026RebuiltWelded);
   }
 
   public static class VisionConstants {
@@ -49,6 +54,29 @@ public final class Constants {
     public static final double xBoundMargin = 0.01;
     public static final double yBoundMargin = 0.01;
     public static final double zBoundMargin = 0.01;
+
+    public static final String leftArducamName = "left-arducam";
+    public static final String rightArducamName = "right-arducam";
+
+    public static final VisionPoseEstimatorConstants leftArducam =
+        new VisionPoseEstimatorConstants(
+            leftArducamName,
+            new Transform3d(
+                new Translation3d(0.3015, 0.3014, 0.199),
+                new Rotation3d(0, -Units.degreesToRadians(16.96), -Units.degreesToRadians(15))),
+            0.1,
+            3,
+            4.5);
+
+    public static final VisionPoseEstimatorConstants rightArducam =
+        new VisionPoseEstimatorConstants(
+            rightArducamName,
+            new Transform3d(
+                new Translation3d(0.3015, -0.3014, 0.199),
+                new Rotation3d(0, -Units.degreesToRadians(16.96), Units.degreesToRadians(15))),
+            0.1,
+            3,
+            4.5);
   }
 
   public static class SwerveConstants {
