@@ -105,7 +105,13 @@ public class Robot extends TimedRobot {
     SmartDashboard.putData("Reset Pose", runOnce(() -> _swerve.resetPose(Pose2d.kZero)));
     SmartDashboard.putData(
         "Drive 4.4194 meters", _swerve.driveTo(new Pose2d(4.4194, 0, Rotation2d.kZero)));
-    SmartDashboard.putData("Drive 1 meter", _swerve.driveTo(new Pose2d(1, 0, Rotation2d.kZero)));
+
+    SmartDashboard.putData(
+        "Drive 1 meter forward", _swerve.driveTo(new Pose2d(1, 0, Rotation2d.kZero)));
+    SmartDashboard.putData(
+        "Drive 1 meter back", _swerve.driveTo(new Pose2d(-1, 0, Rotation2d.kZero)));
+    SmartDashboard.putData("Drive to origin", _swerve.driveTo(Pose2d.kZero));
+
     SmartDashboard.putData(
         "Forward Back",
         _swerve
