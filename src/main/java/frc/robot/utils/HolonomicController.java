@@ -166,11 +166,24 @@ public class HolonomicController {
     DogLog.log("Auto/Controller Desired Pose", desiredPose);
     DogLog.log("Auto/Controller Reference Pose", currentPose);
 
-    return baseSpeeds.plus(
-        new ChassisSpeeds(
-            _xController.calculate(currentPose.getX(), desiredPose.getX()),
-            _yController.calculate(currentPose.getY(), desiredPose.getY()),
-            _headingController.calculate(
-                currentPose.getRotation().getRadians(), desiredPose.getRotation().getRadians())));
+    Translation2d translationError =
+        desiredPose.getTranslation().minus(currentPose.getTranslation());
+    Rotation2d rotationError = desiredPose.getRotation().minus(currentPose.getRotation());
+
+    double velX =
+        Math.abs(translationError.getX()) <= SwerveConstants.poseTranslationTolerance.getX()
+            ? 0
+            : _xController.calculate(currentPose.getX(), desiredPose.getX());
+    double velY =
+        Math.abs(translationError.getY()) <= SwerveConstants.poseTranslationTolerance.getY()
+            ? 0
+            : _yController.calculate(currentPose.getY(), desiredPose.getY());
+    double velOmega =
+        Math.abs(rotationError.getRadians()) <= SwerveConstants.poseRotationTolerance.getRadians()
+            ? 0
+            : _headingController.calculate(
+                currentPose.getRotation().getRadians(), desiredPose.getRotation().getRadians());
+
+    return baseSpeeds.plus(new ChassisSpeeds(velX, velY, velOmega));
   }
 }

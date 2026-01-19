@@ -8,8 +8,10 @@ import static edu.wpi.first.units.Units.*;
 
 import edu.wpi.first.apriltag.AprilTagFieldLayout;
 import edu.wpi.first.apriltag.AprilTagFields;
+import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Rotation3d;
 import edu.wpi.first.math.geometry.Transform3d;
+import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.geometry.Translation3d;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.units.AngleUnit;
@@ -44,6 +46,18 @@ public final class Constants {
   public static class FieldConstants {
     public static final AprilTagFieldLayout tagLayout =
         AprilTagFieldLayout.loadField(AprilTagFields.k2026RebuiltWelded);
+
+    // uncomment if using the test tag layout
+    // public static final AprilTagFieldLayout tagLayout;
+
+    // static {
+    //   try {
+    //     tagLayout = AprilTagFieldLayout.loadFromResource(Filesystem.getDeployDirectory() +
+    // File.separator + "test-tag-layout.json");
+    //   } catch (Exception e) {
+    //     throw new RuntimeException(e);
+    //   }
+    // }
   }
 
   public static class VisionConstants {
@@ -53,7 +67,7 @@ public final class Constants {
 
     public static final double xBoundMargin = 0.01;
     public static final double yBoundMargin = 0.01;
-    public static final double zBoundMargin = 0.01;
+    public static final double zBoundMargin = 0.03;
 
     public static final String leftArducamName = "left-arducam";
     public static final String rightArducamName = "right-arducam";
@@ -97,9 +111,12 @@ public final class Constants {
         RadiansPerSecondPerSecond.of(Math.PI * 2);
 
     public static final Per<LinearVelocityUnit, DistanceUnit> poseTranslationalkP =
-        MetersPerSecond.per(Meter).ofNative(1.8);
+        MetersPerSecond.per(Meter).ofNative(2.5);
     public static final Per<AngularVelocityUnit, AngleUnit> poseRotationkP =
         RadiansPerSecond.per(Radian).ofNative(1.2);
+
+    public static final Translation2d poseTranslationTolerance = new Translation2d(0.05, 0.05);
+    public static final Rotation2d poseRotationTolerance = Rotation2d.fromDegrees(2);
 
     public static LinearVelocity translationalDeadband = MetersPerSecond.of(0.01);
     public static AngularVelocity rotationalDeadband = RadiansPerSecond.of(0.01);

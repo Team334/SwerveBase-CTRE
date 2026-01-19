@@ -30,6 +30,7 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import frc.lib.FaultLogger;
+import frc.lib.FaultsTable.FaultType;
 import frc.lib.InputStream;
 import frc.robot.Constants.Ports;
 import frc.robot.Constants.SwerveConstants;
@@ -145,7 +146,7 @@ public class Robot extends TimedRobot {
       Watchdog watchdog = (Watchdog) watchdogField.get(this);
       watchdog.setTimeout(loopOverrunWarningPeriod);
     } catch (Exception e) {
-      DriverStation.reportWarning("Failed to increase watchdog timeout", false);
+      FaultLogger.report("Failed to increase watchdog timeout", FaultType.ERROR);
     }
 
     CommandScheduler.getInstance().setPeriod(loopOverrunWarningPeriod);
