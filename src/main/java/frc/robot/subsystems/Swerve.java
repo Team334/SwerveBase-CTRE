@@ -138,7 +138,7 @@ public class Swerve extends TunerSwerveDrivetrain implements Subsystem, SelfChec
                 // output is actually radians per second, but SysId only supports "volts"
                 setControl(_rotationCharacterization.withRotationalRate(output.in(Volts)));
                 // also log the requested output for SysId
-                SignalLogger.writeDouble("rotational rate", output.in(Volts));
+                SignalLogger.writeDouble("rotational_rate", output.in(Volts));
               },
               null,
               this));
