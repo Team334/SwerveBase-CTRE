@@ -95,6 +95,26 @@ public class HolonomicController {
    * @param currentSpeeds The current field-relative speeds of the chassis.
    */
   public void reset(Pose2d currentPose, Pose2d goalPose, ChassisSpeeds currentSpeeds) {
+    Translation2d translationError = goalPose.getTranslation().minus(currentPose.getTranslation());
+    Rotation2d rotationError = goalPose.getRotation().minus(currentPose.getRotation());
+
+    double goalX =
+        Math.abs(translationError.getX()) <= SwerveConstants.poseTranslationTolerance.getX()
+            ? currentPose.getX()
+            : goalPose.getX();
+
+    double goalY =
+        Math.abs(translationError.getY()) <= SwerveConstants.poseTranslationTolerance.getY()
+            ? currentPose.getY()
+            : goalPose.getY();
+
+    double goalHeading =
+        Math.abs(rotationError.getRadians()) <= SwerveConstants.poseRotationTolerance.getRadians()
+            ? currentPose.getRotation().getRadians()
+            : goalPose.getRotation().getRadians();
+
+    goalPose = new Pose2d(goalX, goalY, Rotation2d.fromRadians(goalHeading));
+
     _translationDirection =
         VecBuilder.fill(goalPose.getX() - currentPose.getX(), goalPose.getY() - currentPose.getY());
 

@@ -115,8 +115,8 @@ public final class Constants {
     public static final Per<AngularVelocityUnit, AngleUnit> poseRotationkP =
         RadiansPerSecond.per(Radian).ofNative(1.2);
 
-    public static final Translation2d poseTranslationTolerance = new Translation2d(0.05, 0.05);
-    public static final Rotation2d poseRotationTolerance = Rotation2d.fromDegrees(2);
+    public static final Translation2d poseTranslationTolerance = new Translation2d(0.03, 0.03);
+    public static final Rotation2d poseRotationTolerance = Rotation2d.fromDegrees(1);
 
     public static LinearVelocity translationalDeadband = MetersPerSecond.of(0.01);
     public static AngularVelocity rotationalDeadband = RadiansPerSecond.of(0.01);
