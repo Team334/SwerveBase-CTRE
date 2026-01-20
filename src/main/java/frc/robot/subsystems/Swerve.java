@@ -29,6 +29,7 @@ import edu.wpi.first.math.geometry.Pose3d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.kinematics.SwerveModulePosition;
+import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.units.measure.AngularAcceleration;
@@ -547,6 +548,18 @@ public class Swerve extends TunerSwerveDrivetrain implements Subsystem, SelfChec
   @Override
   public void simulationPeriodic() {
     _visionSystemSim.update(getPose()); // TODO: odom only?
+  }
+
+  /** Calculates the drive wheel coefficient of static friction. */
+  public Command calculateWheelCOF() {
+    return Commands.runOnce(() -> {
+      DCMotor driveMotor = DCMotor.getKrakenX60(1);
+      
+      double totalFrictionForce = (driveMotor.getTorque(TunerConstants.FrontLeft.SlipCurrent) * TunerConstants.FrontLeft.DriveMotorGearRatio / TunerConstants.FrontLeft.WheelRadius) * 4;
+      double cof = totalFrictionForce / (SwerveConstants.mass.in(Kilograms) * 9.81);
+
+      FaultLogger.report("Drive Wheel COF: " + cof, FaultType.INFO);
+    });
   }
 
   // returns the distance traveled by each individual drive wheel in radians

@@ -91,6 +91,7 @@ public class Robot extends TimedRobot {
     configureDriverBindings();
 
     SmartDashboard.putData("Wheel Radius Characterization", _swerve.wheelRadiusCharacterization());
+    SmartDashboard.putData("Calculate Wheel COF", _swerve.calculateWheelCOF());
 
     SmartDashboard.putData(
         "Robot Self Check",
