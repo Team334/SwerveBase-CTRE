@@ -552,14 +552,19 @@ public class Swerve extends TunerSwerveDrivetrain implements Subsystem, SelfChec
 
   /** Calculates the drive wheel coefficient of static friction. */
   public Command calculateWheelCOF() {
-    return Commands.runOnce(() -> {
-      DCMotor driveMotor = DCMotor.getKrakenX60(1);
-      
-      double totalFrictionForce = (driveMotor.getTorque(TunerConstants.FrontLeft.SlipCurrent) * TunerConstants.FrontLeft.DriveMotorGearRatio / TunerConstants.FrontLeft.WheelRadius) * 4;
-      double cof = totalFrictionForce / (SwerveConstants.mass.in(Kilograms) * 9.81);
+    return Commands.runOnce(
+        () -> {
+          DCMotor driveMotor = DCMotor.getKrakenX60(1);
 
-      FaultLogger.report("Drive Wheel COF: " + cof, FaultType.INFO);
-    });
+          double totalFrictionForce =
+              (driveMotor.getTorque(TunerConstants.FrontLeft.SlipCurrent)
+                      * TunerConstants.FrontLeft.DriveMotorGearRatio
+                      / TunerConstants.FrontLeft.WheelRadius)
+                  * 4;
+          double cof = totalFrictionForce / (SwerveConstants.mass.in(Kilograms) * 9.81);
+
+          FaultLogger.report("Drive Wheel COF: " + cof, FaultType.INFO);
+        });
   }
 
   // returns the distance traveled by each individual drive wheel in radians
