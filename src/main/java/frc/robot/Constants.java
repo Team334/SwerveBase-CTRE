@@ -7,7 +7,6 @@ package frc.robot;
 import static edu.wpi.first.units.Units.*;
 
 import edu.wpi.first.apriltag.AprilTagFieldLayout;
-import edu.wpi.first.apriltag.AprilTagFields;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Rotation3d;
 import edu.wpi.first.math.geometry.Transform3d;
@@ -26,6 +25,7 @@ import edu.wpi.first.units.measure.LinearVelocity;
 import edu.wpi.first.units.measure.Mass;
 import edu.wpi.first.units.measure.MomentOfInertia;
 import edu.wpi.first.units.measure.Per;
+import edu.wpi.first.wpilibj.Filesystem;
 import frc.robot.utils.VisionPoseEstimator.VisionPoseEstimatorConstants;
 
 /**
@@ -44,29 +44,29 @@ public final class Constants {
   }
 
   public static class FieldConstants {
-    public static final AprilTagFieldLayout tagLayout =
-        AprilTagFieldLayout.loadField(AprilTagFields.k2026RebuiltWelded);
+    // public static final AprilTagFieldLayout tagLayout =
+    //     AprilTagFieldLayout.loadField(AprilTagFields.k2026RebuiltWelded);
 
     // uncomment if using the test tag layout
-    // public static final AprilTagFieldLayout tagLayout;
+    public static final AprilTagFieldLayout tagLayout;
 
-    // static {
-    //   try {
-    //     tagLayout = AprilTagFieldLayout.loadFromResource(Filesystem.getDeployDirectory() +
-    // File.separator + "test-tag-layout.json");
-    //   } catch (Exception e) {
-    //     throw new RuntimeException(e);
-    //   }
-    // }
+    static {
+      try {
+        tagLayout =
+            new AprilTagFieldLayout(Filesystem.getDeployDirectory() + "/test-tag-layout.json");
+      } catch (Exception e) {
+        throw new RuntimeException(e);
+      }
+    }
   }
 
   public static class VisionConstants {
-    public static final double singleTagStdDevsScaler = 5;
+    public static final double singleTagStdDevsScaler = 3;
 
     public static final double ambiguityThreshold = 0.2;
 
     public static final double xBoundMargin = 0.01;
-    public static final double yBoundMargin = 0.01;
+    public static final double yBoundMargin = 5;
     public static final double zBoundMargin = 0.03;
 
     public static final String leftArducamName = "left-arducam";
@@ -78,7 +78,7 @@ public final class Constants {
             new Transform3d(
                 new Translation3d(0.3015, 0.3014, 0.199),
                 new Rotation3d(0, -Units.degreesToRadians(16.96), -Units.degreesToRadians(15))),
-            0.1,
+            0.02,
             3,
             4.5);
 
@@ -88,7 +88,7 @@ public final class Constants {
             new Transform3d(
                 new Translation3d(0.3015, -0.3014, 0.199),
                 new Rotation3d(0, -Units.degreesToRadians(16.96), Units.degreesToRadians(15))),
-            0.1,
+            0.02,
             3,
             4.5);
   }
@@ -111,9 +111,11 @@ public final class Constants {
         RadiansPerSecondPerSecond.of(Math.PI * 2);
 
     public static final Per<LinearVelocityUnit, DistanceUnit> poseTranslationalkP =
-        MetersPerSecond.per(Meter).ofNative(2.5);
+        MetersPerSecond.per(Meter).ofNative(3.5);
     public static final Per<AngularVelocityUnit, AngleUnit> poseRotationkP =
         RadiansPerSecond.per(Radian).ofNative(1.2);
+
+    public static final boolean ignorePoseTolerance = true;
 
     public static final Translation2d poseTranslationTolerance = new Translation2d(0.03, 0.03);
     public static final Rotation2d poseRotationTolerance = Rotation2d.fromDegrees(1);

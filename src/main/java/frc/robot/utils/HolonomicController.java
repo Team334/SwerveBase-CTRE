@@ -95,25 +95,28 @@ public class HolonomicController {
    * @param currentSpeeds The current field-relative speeds of the chassis.
    */
   public void reset(Pose2d currentPose, Pose2d goalPose, ChassisSpeeds currentSpeeds) {
-    Translation2d translationError = goalPose.getTranslation().minus(currentPose.getTranslation());
-    Rotation2d rotationError = goalPose.getRotation().minus(currentPose.getRotation());
+    if (!SwerveConstants.ignorePoseTolerance) {
+      Translation2d translationError =
+          goalPose.getTranslation().minus(currentPose.getTranslation());
+      Rotation2d rotationError = goalPose.getRotation().minus(currentPose.getRotation());
 
-    double goalX =
-        Math.abs(translationError.getX()) <= SwerveConstants.poseTranslationTolerance.getX()
-            ? currentPose.getX()
-            : goalPose.getX();
+      double goalX =
+          Math.abs(translationError.getX()) <= SwerveConstants.poseTranslationTolerance.getX()
+              ? currentPose.getX()
+              : goalPose.getX();
 
-    double goalY =
-        Math.abs(translationError.getY()) <= SwerveConstants.poseTranslationTolerance.getY()
-            ? currentPose.getY()
-            : goalPose.getY();
+      double goalY =
+          Math.abs(translationError.getY()) <= SwerveConstants.poseTranslationTolerance.getY()
+              ? currentPose.getY()
+              : goalPose.getY();
 
-    double goalHeading =
-        Math.abs(rotationError.getRadians()) <= SwerveConstants.poseRotationTolerance.getRadians()
-            ? currentPose.getRotation().getRadians()
-            : goalPose.getRotation().getRadians();
+      double goalHeading =
+          Math.abs(rotationError.getRadians()) <= SwerveConstants.poseRotationTolerance.getRadians()
+              ? currentPose.getRotation().getRadians()
+              : goalPose.getRotation().getRadians();
 
-    goalPose = new Pose2d(goalX, goalY, Rotation2d.fromRadians(goalHeading));
+      goalPose = new Pose2d(goalX, goalY, Rotation2d.fromRadians(goalHeading));
+    }
 
     _translationDirection =
         VecBuilder.fill(goalPose.getX() - currentPose.getX(), goalPose.getY() - currentPose.getY());
@@ -186,24 +189,33 @@ public class HolonomicController {
     DogLog.log("Auto/Controller Desired Pose", desiredPose);
     DogLog.log("Auto/Controller Reference Pose", currentPose);
 
-    Translation2d translationError =
-        desiredPose.getTranslation().minus(currentPose.getTranslation());
-    Rotation2d rotationError = desiredPose.getRotation().minus(currentPose.getRotation());
+    if (!SwerveConstants.ignorePoseTolerance) {
+      Translation2d translationError =
+          desiredPose.getTranslation().minus(currentPose.getTranslation());
+      Rotation2d rotationError = desiredPose.getRotation().minus(currentPose.getRotation());
 
-    double velX =
-        Math.abs(translationError.getX()) <= SwerveConstants.poseTranslationTolerance.getX()
-            ? 0
-            : _xController.calculate(currentPose.getX(), desiredPose.getX());
-    double velY =
-        Math.abs(translationError.getY()) <= SwerveConstants.poseTranslationTolerance.getY()
-            ? 0
-            : _yController.calculate(currentPose.getY(), desiredPose.getY());
-    double velOmega =
-        Math.abs(rotationError.getRadians()) <= SwerveConstants.poseRotationTolerance.getRadians()
-            ? 0
-            : _headingController.calculate(
-                currentPose.getRotation().getRadians(), desiredPose.getRotation().getRadians());
+      double velX =
+          Math.abs(translationError.getX()) <= SwerveConstants.poseTranslationTolerance.getX()
+              ? 0
+              : _xController.calculate(currentPose.getX(), desiredPose.getX());
+      double velY =
+          Math.abs(translationError.getY()) <= SwerveConstants.poseTranslationTolerance.getY()
+              ? 0
+              : _yController.calculate(currentPose.getY(), desiredPose.getY());
+      double velOmega =
+          Math.abs(rotationError.getRadians()) <= SwerveConstants.poseRotationTolerance.getRadians()
+              ? 0
+              : _headingController.calculate(
+                  currentPose.getRotation().getRadians(), desiredPose.getRotation().getRadians());
 
-    return baseSpeeds.plus(new ChassisSpeeds(velX, velY, velOmega));
+      return baseSpeeds.plus(new ChassisSpeeds(velX, velY, velOmega));
+    }
+
+    return baseSpeeds.plus(
+        new ChassisSpeeds(
+            _xController.calculate(currentPose.getX(), desiredPose.getX()),
+            _yController.calculate(currentPose.getY(), desiredPose.getY()),
+            _headingController.calculate(
+                currentPose.getRotation().getRadians(), desiredPose.getRotation().getRadians())));
   }
 }

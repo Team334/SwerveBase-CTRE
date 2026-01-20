@@ -4,9 +4,9 @@
       "ID": 28,
       "pose": {
         "translation": {
-          "x": 1.79,
+          "x": 1.5945,
           "y": 0,
-          "z": 0.889
+          "z": 0.406
         },
         "rotation": {
           "quaternion": {
