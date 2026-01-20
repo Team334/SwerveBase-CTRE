@@ -561,6 +561,7 @@ public class Swerve extends TunerSwerveDrivetrain implements Subsystem, SelfChec
                       * TunerConstants.FrontLeft.DriveMotorGearRatio
                       / TunerConstants.FrontLeft.WheelRadius)
                   * 4;
+
           double cof = totalFrictionForce / (SwerveConstants.mass.in(Kilograms) * 9.81);
 
           FaultLogger.report("Drive Wheel COF: " + cof, FaultType.INFO);
