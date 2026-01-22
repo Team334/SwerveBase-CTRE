@@ -97,7 +97,7 @@ public final class Constants {
     public static final Frequency odometryFrequency = Hertz.of(250);
 
     public static final Mass mass = Pounds.of(136.38);
-    public static final MomentOfInertia moi = KilogramSquareMeters.of(0);
+    public static final MomentOfInertia moi = KilogramSquareMeters.of(8.777);
 
     public static final LinearVelocity driverTranslationalVelocity = MetersPerSecond.of(4);
     public static final AngularVelocity driverAngularVelocity = RadiansPerSecond.of(Math.PI);
@@ -108,12 +108,12 @@ public final class Constants {
 
     public static final AngularVelocity profileAngularVelocity = RadiansPerSecond.of(Math.PI);
     public static final AngularAcceleration profileAngularAcceleration =
-        RadiansPerSecondPerSecond.of(Math.PI * 2);
+        RadiansPerSecondPerSecond.of(Math.PI / 2);
 
     public static final Per<LinearVelocityUnit, DistanceUnit> poseTranslationalkP =
         MetersPerSecond.per(Meter).ofNative(3.5);
     public static final Per<AngularVelocityUnit, AngleUnit> poseRotationkP =
-        RadiansPerSecond.per(Radian).ofNative(1.2);
+        RadiansPerSecond.per(Radian).ofNative(8);
 
     public static final boolean ignorePoseTolerance = true;
 

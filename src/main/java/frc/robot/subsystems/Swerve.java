@@ -31,6 +31,7 @@ import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.kinematics.SwerveModulePosition;
 import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.math.util.Units;
+import edu.wpi.first.networktables.DoubleSubscriber;
 import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.units.measure.AngularAcceleration;
 import edu.wpi.first.units.measure.AngularVelocity;
@@ -559,6 +560,34 @@ public class Swerve extends TunerSwerveDrivetrain implements Subsystem, SelfChec
   @Override
   public void simulationPeriodic() {
     _visionSystemSim.update(getPose()); // TODO: odom only?
+  }
+
+  /** Calculates the chassis MOI given angular chassis kA in volts/rad/s^2. */
+  public Command calculateMOI() {
+    final Distance driveRadius =
+        Meters.of(
+            Math.sqrt(
+                Math.pow(TunerConstants.FrontLeft.LocationX, 2)
+                    + Math.pow(TunerConstants.FrontLeft.LocationY, 2)));
+
+    final DoubleSubscriber angularkA = DogLog.tunable("Angular kA", 1.0);
+
+    return Commands.runOnce(
+            () -> {
+              DCMotor driveMotor = DCMotor.getKrakenX60(1);
+
+              double chassisTorque =
+                  (driveMotor.getTorque(driveMotor.getCurrent(0, angularkA.get()))
+                          * TunerConstants.FrontLeft.DriveMotorGearRatio
+                          / TunerConstants.FrontLeft.WheelRadius)
+                      * driveRadius.in(Meters)
+                      * 4;
+              double MOI = chassisTorque / 1.0;
+
+              FaultLogger.report("Chassis MOI: " + MOI, FaultType.INFO);
+            })
+        .ignoringDisable(true)
+        .withName("Calculate Chassis MOI");
   }
 
   /** Calculates the drive wheel coefficient of static friction. */
