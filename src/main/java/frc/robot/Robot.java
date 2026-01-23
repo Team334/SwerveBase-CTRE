@@ -116,6 +116,7 @@ public class Robot extends TimedRobot {
     chooser.addRoutine("mrc", _autos::mrc);
     chooser.addRoutine("brotate", _autos::brotate);
     chooser.addRoutine("vocim", _autos::vocim);
+    chooser.addRoutine("square", _autos::square);
 
     SmartDashboard.putData("Auto Chooser", chooser);
 
@@ -126,7 +127,7 @@ public class Robot extends TimedRobot {
     SmartDashboard.putData("Reset pose to origin", runOnce(() -> _swerve.resetPose(Pose2d.kZero)));
 
     SmartDashboard.putData(
-        "Drive to (0.7, 0, 0)", _swerve.driveTo(new Pose2d(.7, 0, Rotation2d.kZero)));
+        "Drive to (1.5, 0, 0)", _swerve.driveTo(new Pose2d(1.5, 0, Rotation2d.kZero)));
     SmartDashboard.putData(
         "Drive to (0.7, 0, 180)", _swerve.driveTo(new Pose2d(0.7, 0, Rotation2d.k180deg)));
     SmartDashboard.putData("Drive to (0, 0, 0)", _swerve.driveTo(Pose2d.kZero));

@@ -71,4 +71,14 @@ public class Autos {
 
     return routine;
   }
+
+  public AutoRoutine square() {
+    AutoRoutine routine = _factory.newRoutine("square");
+
+    AutoTrajectory traj = routine.trajectory("square");
+
+    routine.active().onTrue(sequence(traj.resetOdometry(), traj.cmd()));
+
+    return routine;
+  }
 }

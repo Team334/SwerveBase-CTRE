@@ -67,7 +67,7 @@ public final class Constants {
 
     public static final double xBoundMargin = 0.01;
     public static final double yBoundMargin = 5;
-    public static final double zBoundMargin = 0.03;
+    public static final double zBoundMargin = 0.1;
 
     public static final String leftArducamName = "left-arducam";
     public static final String rightArducamName = "right-arducam";
@@ -78,8 +78,8 @@ public final class Constants {
             new Transform3d(
                 new Translation3d(0.3015, 0.3014, 0.199),
                 new Rotation3d(0, -Units.degreesToRadians(16.96), -Units.degreesToRadians(15))),
-            0.02,
-            3,
+            0.1,
+            2,
             4.5);
 
     public static final VisionPoseEstimatorConstants rightArducam =
@@ -88,8 +88,8 @@ public final class Constants {
             new Transform3d(
                 new Translation3d(0.3015, -0.3014, 0.199),
                 new Rotation3d(0, -Units.degreesToRadians(16.96), Units.degreesToRadians(15))),
-            0.02,
-            3,
+            0.1,
+            2,
             4.5);
   }
 
