@@ -91,10 +91,6 @@ public class Robot extends TimedRobot {
 
     configureDriverBindings();
 
-    SmartDashboard.putData("Wheel Radius Characterization", _swerve.wheelRadiusCharacterization());
-    SmartDashboard.putData("Calculate Wheel COF", _swerve.calculateWheelCOF());
-    SmartDashboard.putData("Calculate Chassis MOI", _swerve.calculateMOI());
-
     SmartDashboard.putData(
         "Robot Self Check",
         sequence(
@@ -106,16 +102,9 @@ public class Robot extends TimedRobot {
     SmartDashboard.putData(
         runOnce(FaultLogger::clear).ignoringDisable(true).withName("Clear Faults"));
 
-    SmartDashboard.putData("Reset pose to origin", runOnce(() -> _swerve.resetPose(Pose2d.kZero)));
-
-    SmartDashboard.putData(
-        "Drive to (1, 0, 0)", _swerve.driveTo(new Pose2d(1, 0, Rotation2d.kZero)));
-    SmartDashboard.putData(
-        "Drive to (1, 0, 180)", _swerve.driveTo(new Pose2d(1, 0, Rotation2d.k180deg)));
-    SmartDashboard.putData("Drive to (0, 0, 0)", _swerve.driveTo(Pose2d.kZero));
-    SmartDashboard.putData(
-        "Drive to (0, 0, 180)",
-        _swerve.driveTo(new Pose2d(Translation2d.kZero, Rotation2d.k180deg)));
+    SmartDashboard.putData("Wheel Radius Characterization", _swerve.wheelRadiusCharacterization());
+    SmartDashboard.putData("Calculate Wheel COF", _swerve.calculateWheelCOF());
+    SmartDashboard.putData("Calculate Chassis MOI", _swerve.calculateMOI());
 
     addPeriodic(FaultLogger::update, 1);
 
@@ -124,12 +113,24 @@ public class Robot extends TimedRobot {
     chooser.addRoutine("Example", _autos::example);
     chooser.addRoutine("mrc", _autos::mrc);
     chooser.addRoutine("brotate", _autos::brotate);
+    chooser.addRoutine("vocim", _autos::vocim);
 
     SmartDashboard.putData("Auto Chooser", chooser);
 
     autonomous().whileTrue(chooser.selectedCommandScheduler());
 
     preventChoreoDelay();
+
+    SmartDashboard.putData("Reset pose to origin", runOnce(() -> _swerve.resetPose(Pose2d.kZero)));
+
+    SmartDashboard.putData(
+        "Drive to (0.7, 0, 0)", _swerve.driveTo(new Pose2d(.7, 0, Rotation2d.kZero)));
+    SmartDashboard.putData(
+        "Drive to (0.7, 0, 180)", _swerve.driveTo(new Pose2d(0.7, 0, Rotation2d.k180deg)));
+    SmartDashboard.putData("Drive to (0, 0, 0)", _swerve.driveTo(Pose2d.kZero));
+    SmartDashboard.putData(
+        "Drive to (0, 0, 180)",
+        _swerve.driveTo(new Pose2d(Translation2d.kZero, Rotation2d.k180deg)));
   }
 
   /** Watchdog config / class preloading needed to prevent choreo delay. */

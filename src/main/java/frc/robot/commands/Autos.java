@@ -45,9 +45,9 @@ public class Autos {
   public AutoRoutine mrc() {
     AutoRoutine routine = _factory.newRoutine("mrc");
 
-    AutoTrajectory exampleTraj = routine.trajectory("mrc");
+    AutoTrajectory traj = routine.trajectory("mrc");
 
-    routine.active().onTrue(sequence(exampleTraj.resetOdometry(), exampleTraj.cmd()));
+    routine.active().onTrue(sequence(traj.resetOdometry(), traj.cmd()));
 
     return routine;
   }
@@ -55,9 +55,19 @@ public class Autos {
   public AutoRoutine brotate() {
     AutoRoutine routine = _factory.newRoutine("brotate");
 
-    AutoTrajectory exampleTraj = routine.trajectory("brotate");
+    AutoTrajectory traj = routine.trajectory("brotate");
 
-    routine.active().onTrue(sequence(exampleTraj.resetOdometry(), exampleTraj.cmd()));
+    routine.active().onTrue(sequence(traj.resetOdometry(), traj.cmd()));
+
+    return routine;
+  }
+
+  public AutoRoutine vocim() {
+    AutoRoutine routine = _factory.newRoutine("vocim");
+
+    AutoTrajectory traj = routine.trajectory("vocim");
+
+    routine.active().onTrue(sequence(traj.resetOdometry(), traj.cmd()));
 
     return routine;
   }

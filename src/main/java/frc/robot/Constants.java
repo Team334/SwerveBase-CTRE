@@ -102,16 +102,16 @@ public final class Constants {
     public static final LinearVelocity driverTranslationalVelocity = MetersPerSecond.of(4);
     public static final AngularVelocity driverAngularVelocity = RadiansPerSecond.of(Math.PI);
 
-    public static final LinearVelocity profileTranslationalVelocity = MetersPerSecond.of(0.7);
+    public static final LinearVelocity profileTranslationalVelocity = MetersPerSecond.of(3);
     public static final LinearAcceleration profileTranslationalAcceleration =
-        MetersPerSecondPerSecond.of(2);
+        MetersPerSecondPerSecond.of(6);
 
-    public static final AngularVelocity profileAngularVelocity = RadiansPerSecond.of(Math.PI);
+    public static final AngularVelocity profileAngularVelocity = RadiansPerSecond.of(2 * Math.PI);
     public static final AngularAcceleration profileAngularAcceleration =
-        RadiansPerSecondPerSecond.of(Math.PI / 2);
+        RadiansPerSecondPerSecond.of(4 * Math.PI);
 
     public static final Per<LinearVelocityUnit, DistanceUnit> poseTranslationalkP =
-        MetersPerSecond.per(Meter).ofNative(3.5);
+        MetersPerSecond.per(Meter).ofNative(8);
     public static final Per<AngularVelocityUnit, AngleUnit> poseRotationkP =
         RadiansPerSecond.per(Radian).ofNative(8);
 
