@@ -610,6 +610,22 @@ public class Swerve extends TunerSwerveDrivetrain implements Subsystem, SelfChec
         .withName("Calculate Wheel COF");
   }
 
+  /** Calculate the drive motor max speed and torque accounting for pose PID headroom and stator current limit. */
+  public Command calculateMotorMaxSpeedAndTorque() {
+    // percentage of max achievable speed and torque, leaving headroom for pose PID
+    final double headroom = 0.80;
+
+    return Commands.runOnce(
+      () -> {
+        DCMotor driveMotor = DCMotor.getKrakenX60(1);
+
+        double maxSpeed = Units.radiansPerSecondToRotationsPerMinute(driveMotor.freeSpeedRadPerSec * headroom);
+        double maxTorque = driveMotor.getTorque(TunerConstants.FrontLeft.SlipCurrent * headroom);
+
+        FaultLogger.report("Motor Max Speed (rpm): " + maxSpeed + ", Motor Max Torque: " + maxTorque, FaultType.INFO);
+    }).ignoringDisable(true).withName("Calculate Motor Max Speed And Torque");
+  }
+
   // returns the distance traveled by each individual drive wheel in radians
   private double[] getWheelDistancesRadians() {
     SwerveModulePosition[] positions = getState().ModulePositions;
