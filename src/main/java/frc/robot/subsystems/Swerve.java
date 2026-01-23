@@ -29,7 +29,9 @@ import edu.wpi.first.math.geometry.Pose3d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.kinematics.SwerveModulePosition;
+import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.math.util.Units;
+import edu.wpi.first.networktables.DoubleSubscriber;
 import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.units.measure.AngularAcceleration;
 import edu.wpi.first.units.measure.AngularVelocity;
@@ -135,7 +137,7 @@ public class Swerve extends TunerSwerveDrivetrain implements Subsystem, SelfChec
                 // output is actually radians per second, but SysId only supports "volts"
                 setControl(_rotationCharacterization.withRotationalRate(output.in(Volts)));
                 // also log the requested output for SysId
-                SignalLogger.writeDouble("rotational rate", output.in(Volts));
+                SignalLogger.writeDouble("rotational_rate", output.in(Volts));
               },
               null,
               this));
@@ -527,7 +529,81 @@ public class Swerve extends TunerSwerveDrivetrain implements Subsystem, SelfChec
 
   @Override
   public void simulationPeriodic() {
-    // _visionSystemSim.update(getPose()); // TODO: odom only?
+    _visionSystemSim.update(getPose()); // TODO: odom only?
+  }
+
+  /** Calculates the chassis MOI given angular chassis kA in volts/rad/s^2. */
+  public Command calculateMOI() {
+    final Distance driveRadius =
+        Meters.of(
+            Math.sqrt(
+                Math.pow(TunerConstants.FrontLeft.LocationX, 2)
+                    + Math.pow(TunerConstants.FrontLeft.LocationY, 2)));
+
+    final DoubleSubscriber angularkA = DogLog.tunable("Angular kA", 1.0);
+
+    return Commands.runOnce(
+            () -> {
+              DCMotor driveMotor = DCMotor.getKrakenX60(1);
+
+              double chassisTorque =
+                  (driveMotor.getTorque(driveMotor.getCurrent(0, angularkA.get()))
+                          * TunerConstants.FrontLeft.DriveMotorGearRatio
+                          / TunerConstants.FrontLeft.WheelRadius)
+                      * driveRadius.in(Meters)
+                      * 4;
+              double MOI = chassisTorque / 1.0;
+
+              FaultLogger.report("Chassis MOI: " + MOI, FaultType.INFO);
+            })
+        .ignoringDisable(true)
+        .withName("Calculate Chassis MOI");
+  }
+
+  /** Calculates the drive wheel coefficient of static friction. */
+  public Command calculateWheelCOF() {
+    return Commands.runOnce(
+            () -> {
+              DCMotor driveMotor = DCMotor.getKrakenX60(1);
+
+              double totalFrictionForce =
+                  (driveMotor.getTorque(TunerConstants.FrontLeft.SlipCurrent)
+                          * TunerConstants.FrontLeft.DriveMotorGearRatio
+                          / TunerConstants.FrontLeft.WheelRadius)
+                      * 4;
+
+              double cof = totalFrictionForce / (SwerveConstants.mass.in(Kilograms) * 9.81);
+
+              FaultLogger.report("Drive Wheel COF: " + cof, FaultType.INFO);
+            })
+        .ignoringDisable(true)
+        .withName("Calculate Wheel COF");
+  }
+
+  /**
+   * Calculate the drive motor max speed and torque accounting for pose PID headroom and stator
+   * current limit.
+   */
+  public Command calculateMotorMaxSpeedAndTorque() {
+    // percentage of max achievable speed and torque, leaving headroom for pose PID
+    final double headroom = 0.80;
+
+    return Commands.runOnce(
+            () -> {
+              DCMotor driveMotor = DCMotor.getKrakenX60(1);
+
+              double maxSpeed =
+                  Units.radiansPerSecondToRotationsPerMinute(
+                      driveMotor.freeSpeedRadPerSec * headroom);
+              double maxTorque =
+                  driveMotor.getTorque(TunerConstants.FrontLeft.SlipCurrent) * headroom;
+
+              FaultLogger.report(
+                  "Motor Max Speed (rpm): " + maxSpeed + ", Motor Max Torque: " + maxTorque,
+                  FaultType.INFO);
+            })
+        .ignoringDisable(true)
+        .withName("Calculate Motor Max Speed And Torque");
   }
 
   // returns the distance traveled by each individual drive wheel in radians
