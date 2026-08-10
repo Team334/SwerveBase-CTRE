@@ -4,11 +4,10 @@
 
 package frc.lib;
 
+import dev.doglog.DogLog;
 import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.filter.LinearFilter;
 import edu.wpi.first.math.filter.SlewRateLimiter;
-import edu.wpi.first.networktables.DoublePublisher;
-import edu.wpi.first.networktables.NetworkTableInstance;
 import java.util.function.BooleanSupplier;
 import java.util.function.DoubleSupplier;
 import java.util.function.DoubleUnaryOperator;
@@ -16,6 +15,8 @@ import java.util.function.DoubleUnaryOperator;
 /** A functional interface to aid in modifying double suppliers, such as from a joystick. */
 @FunctionalInterface
 public interface InputStream extends DoubleSupplier {
+  public static final InputStream zero = of(() -> 0);
+
   /**
    * Creates an input stream from another.
    *
@@ -186,13 +187,11 @@ public interface InputStream extends DoubleSupplier {
    * @return A stream with the same output as this one.
    */
   public default InputStream log(String key) {
-    DoublePublisher pub =
-        NetworkTableInstance.getDefault()
-            .getDoubleTopic(key)
-            .publish(); // TODO: watch out unit tests
     return () -> {
       double val = this.get();
-      pub.set(val);
+
+      DogLog.log(key, val);
+
       return val;
     };
   }

@@ -1,14 +1,16 @@
 package frc.lib;
 
-import static frc.lib.UnitTestingUtil.*;
+import static frc.lib.util.UnitTestingUtil.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 import com.ctre.phoenix6.StatusCode;
 import com.ctre.phoenix6.hardware.CANcoder;
 import com.ctre.phoenix6.hardware.Pigeon2;
 import com.ctre.phoenix6.hardware.TalonFX;
-import frc.lib.FaultsTable.Fault;
-import frc.lib.FaultsTable.FaultType;
+import frc.lib.fault.FaultLogger;
+import frc.lib.fault.FaultsTable.Fault;
+import frc.lib.fault.FaultsTable.FaultType;
+import frc.lib.util.CTREUtil;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -40,27 +42,27 @@ public class CTREUtilTest {
   public void motorName() {
     var name = CTREUtil.getName(_motor);
 
-    assertEquals("TalonFX (1)", name);
+    assertEquals("TalonFX (1 - )", name);
   }
 
   @Test
   public void gyroName() {
     var name = CTREUtil.getName(_gyro);
 
-    assertEquals("Pigeon (2)", name);
+    assertEquals("Pigeon (2 - )", name);
   }
 
   @Test
   public void encoderName() {
     var name = CTREUtil.getName(_encoder);
 
-    assertEquals("CANcoder (3)", name);
+    assertEquals("CANcoder (3 - )", name);
   }
 
   @Test
   public void attempt() {
     // if all names work then, attempt will work for any device
-    var name = "TalonFX (3)";
+    var name = "TalonFX (3 - )";
 
     var failed1 = CTREUtil.attempt(() -> StatusCode.ConfigFailed, name);
     var failed2 = CTREUtil.attempt(() -> StatusCode.OK, name);
@@ -73,10 +75,10 @@ public class CTREUtilTest {
     assert FaultLogger.totalFaults()
         .contains(
             new Fault(
-                name + " - Config Apply Failed - " + StatusCode.ConfigFailed.getDescription(),
+                name + " - Action Failed - " + StatusCode.ConfigFailed.getDescription(),
                 FaultType.ERROR));
 
     assert FaultLogger.totalFaults()
-        .contains(new Fault(name + " - Config Apply Successful.", FaultType.INFO));
+        .contains(new Fault(name + " - Action Successful.", FaultType.INFO));
   }
 }

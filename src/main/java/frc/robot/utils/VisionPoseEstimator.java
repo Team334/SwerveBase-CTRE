@@ -7,12 +7,11 @@ package frc.robot.utils;
 import dev.doglog.DogLog;
 import edu.wpi.first.apriltag.AprilTagFieldLayout;
 import edu.wpi.first.epilogue.Logged;
-import edu.wpi.first.epilogue.Logged.Strategy;
 import edu.wpi.first.math.geometry.Pose3d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Transform3d;
 import edu.wpi.first.networktables.NetworkTableInstance;
-import frc.lib.FaultLogger;
+import frc.lib.fault.FaultLogger;
 import frc.robot.Constants.FieldConstants;
 import frc.robot.Constants.VisionConstants;
 import frc.robot.Robot;
@@ -28,7 +27,6 @@ import org.photonvision.simulation.SimCameraProperties;
 import org.photonvision.targeting.PhotonTrackedTarget;
 
 /** Handles pose estimation coming from a single PhotonVision camera. */
-@Logged(strategy = Strategy.OPT_IN)
 public class VisionPoseEstimator implements AutoCloseable {
   /** The camera's NT name. */
   @Logged(name = "Camera Name")
@@ -381,10 +379,21 @@ public class VisionPoseEstimator implements AutoCloseable {
     if (isValid) {
       double tagAmountStdDevsScaler = tagAmount == 1 ? VisionConstants.singleTagStdDevsScaler : 1;
 
-      double xStdDevs = Math.pow(avgTagDistance, 2) * tagAmountStdDevsScaler * cameraStdDevsScaler;
-      double yStdDevs = Math.pow(avgTagDistance, 2) * tagAmountStdDevsScaler * cameraStdDevsScaler;
+      double xStdDevs =
+          Math.pow(avgTagDistance, 2)
+              * tagAmountStdDevsScaler
+              * VisionConstants.translationStdDevsScaler
+              * cameraStdDevsScaler;
+      double yStdDevs =
+          Math.pow(avgTagDistance, 2)
+              * tagAmountStdDevsScaler
+              * VisionConstants.translationStdDevsScaler
+              * cameraStdDevsScaler;
       double thetaStdDevs =
-          Math.pow(avgTagDistance, 2) * tagAmountStdDevsScaler * cameraStdDevsScaler;
+          Math.pow(avgTagDistance, 2)
+              * tagAmountStdDevsScaler
+              * VisionConstants.thetaStdDevsScaler
+              * cameraStdDevsScaler;
 
       if (ignoreThetaEstimate) thetaStdDevs = 999999999;
 
@@ -407,6 +416,8 @@ public class VisionPoseEstimator implements AutoCloseable {
 
   /** Reads from the camera and generates an array of new latest {@link VisionPoseEstimate}(s). */
   public void update() {
+    DogLog.log("Is " + camName + " Connected", _camera.isConnected());
+
     _newEstimates.clear(); // reset new estimates
 
     var results = _camera.getAllUnreadResults();

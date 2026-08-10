@@ -22,13 +22,15 @@ import edu.wpi.first.util.ClassPreloader;
 import edu.wpi.first.wpilibj.DataLogManager;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.IterativeRobotBase;
+import edu.wpi.first.wpilibj.PowerDistribution;
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.Watchdog;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
-import frc.lib.FaultLogger;
-import frc.lib.FaultsTable.FaultType;
+import frc.lib.fault.FaultLogger;
+import frc.lib.fault.FaultsTable.FaultType;
+import frc.lib.GcStatsCollector;
 import frc.lib.InputStream;
 import frc.robot.Constants.Ports;
 import frc.robot.Constants.SwerveConstants;
@@ -56,6 +58,8 @@ public class Robot extends TimedRobot {
 
   private final NetworkTableInstance _ntInst;
 
+  private final GcStatsCollector _gcStatsCollector = new GcStatsCollector();
+
   private boolean _fileOnlySet = false;
 
   /**
@@ -71,16 +75,17 @@ public class Robot extends TimedRobot {
    * initialization code.
    */
   public Robot(NetworkTableInstance ntInst) {
+    super(Constants.robotPeriod.in(Seconds));
     _ntInst = ntInst;
 
     // set up loggers
-    DogLog.setOptions(DogLog.getOptions().withCaptureDs(true));
-    // DogLog.setPdh(new PowerDistribution()); // TODO: get ts to work
+    DogLog.setOptions(DogLog.getOptions().withCaptureDs(true).withNtTunables(true));
+    DogLog.setPdh(new PowerDistribution());
 
     setFileOnly(false); // file-only once connected to fms
 
     Epilogue.bind(this);
-    SignalLogger.start(); // TODO: log canivore can data as well
+    SignalLogger.start(); 
 
     DriverStation.silenceJoystickConnectionWarning(isSimulation());
 
@@ -208,6 +213,8 @@ public class Robot extends TimedRobot {
 
       _fileOnlySet = true;
     }
+
+    _gcStatsCollector.update();
 
     DogLog.timeEnd("Timing/Robot/robotPeriodic()");
 

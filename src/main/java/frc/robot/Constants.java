@@ -6,22 +6,28 @@ package frc.robot;
 
 import static edu.wpi.first.units.Units.*;
 
+import com.ctre.phoenix6.CANBus;
+
 import edu.wpi.first.apriltag.AprilTagFieldLayout;
 import edu.wpi.first.apriltag.AprilTagFields;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Translation2d;
+import edu.wpi.first.math.system.plant.DCMotor;
+import edu.wpi.first.math.util.Units;
 import edu.wpi.first.units.AngleUnit;
 import edu.wpi.first.units.AngularVelocityUnit;
 import edu.wpi.first.units.DistanceUnit;
 import edu.wpi.first.units.LinearVelocityUnit;
 import edu.wpi.first.units.measure.AngularAcceleration;
 import edu.wpi.first.units.measure.AngularVelocity;
+import edu.wpi.first.units.measure.Current;
 import edu.wpi.first.units.measure.Frequency;
 import edu.wpi.first.units.measure.LinearAcceleration;
 import edu.wpi.first.units.measure.LinearVelocity;
 import edu.wpi.first.units.measure.Mass;
 import edu.wpi.first.units.measure.MomentOfInertia;
 import edu.wpi.first.units.measure.Per;
+import edu.wpi.first.units.measure.Time;
 
 /**
  * The Constants class provides a convenient place for teams to hold robot-wide numerical or boolean
@@ -32,10 +38,36 @@ import edu.wpi.first.units.measure.Per;
  * constants are needed, to reduce verbosity.
  */
 public final class Constants {
+    private static final CANBus determineBus(String bus) {
+    if (Robot.isSimulation()) {
+      return new CANBus("");
+    }
+
+    return new CANBus(bus);
+  }
+
+  private static final int determineID(int id) {
+    if (Robot.isSimulation()) {
+      return 20 + id;
+    }
+
+    return id;
+  }
+  public static final Time robotPeriod = Seconds.of(0.02);
+
+
   public static final Frequency simNotifierFrequency = Hertz.of(200);
 
   public static class Ports {
     public static final int driverController = 0;
+  }
+
+  public static class MotorConstants {
+    public static final DCMotor krakenX60 =
+        new DCMotor(12, 7.16, 374.4, 3, Units.rotationsPerMinuteToRadiansPerSecond(6065), 1);
+
+    public static final DCMotor krakenX44 =
+        new DCMotor(12, 4.11, 279.1, 3, Units.rotationsPerMinuteToRadiansPerSecond(7758), 1);
   }
 
   public static class FieldConstants {
@@ -58,9 +90,13 @@ public final class Constants {
   public static class VisionConstants {
     public static final double singleTagStdDevsScaler = 5;
 
+    public static final double translationStdDevsScaler = 1;
+    public static final double thetaStdDevsScaler = 1;
+
     public static final double ambiguityThreshold = 0.2;
 
-    public static final double xBoundMargin = 0.01;
+    // TODO: tune margins gains if time allows
+    public static final double xBoundMargin = 0.01; 
     public static final double yBoundMargin = 0.01;
     public static final double zBoundMargin = 0.01;
   }
@@ -68,8 +104,10 @@ public final class Constants {
   public static class SwerveConstants {
     public static final Frequency odometryFrequency = Hertz.of(250);
 
-    public static final Mass mass = Pounds.of(136.38);
-    public static final MomentOfInertia moi = KilogramSquareMeters.of(0);
+    public static final Mass mass = Pounds.of(133.7);
+    public static final MomentOfInertia moi = KilogramSquareMeters.of(0); // TODO: tune moment of inertia via smartdashboard button
+    
+    public static final Current frontSlipCurrent = Amps.of(120); // TODO: tune front slip current, default is 120A
 
     public static final LinearVelocity driverTranslationalVelocity = MetersPerSecond.of(4);
     public static final AngularVelocity driverAngularVelocity = RadiansPerSecond.of(Math.PI);
