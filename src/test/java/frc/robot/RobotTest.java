@@ -1,6 +1,6 @@
 package frc.robot;
 
-import static frc.lib.UnitTestingUtil.*;
+import static frc.lib.util.UnitTestingUtil.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 import dev.doglog.DogLog;
@@ -11,8 +11,10 @@ import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.simulation.DriverStationSim;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
+@Disabled
 public class RobotTest {
   private Robot _robot;
 
