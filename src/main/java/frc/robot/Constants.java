@@ -7,7 +7,6 @@ package frc.robot;
 import static edu.wpi.first.units.Units.*;
 
 import com.ctre.phoenix6.CANBus;
-
 import edu.wpi.first.apriltag.AprilTagFieldLayout;
 import edu.wpi.first.apriltag.AprilTagFields;
 import edu.wpi.first.math.geometry.Rotation2d;
@@ -38,7 +37,7 @@ import edu.wpi.first.units.measure.Time;
  * constants are needed, to reduce verbosity.
  */
 public final class Constants {
-    private static final CANBus determineBus(String bus) {
+  private static final CANBus determineBus(String bus) {
     if (Robot.isSimulation()) {
       return new CANBus("");
     }
@@ -53,8 +52,8 @@ public final class Constants {
 
     return id;
   }
-  public static final Time robotPeriod = Seconds.of(0.02);
 
+  public static final Time robotPeriod = Seconds.of(0.02);
 
   public static final Frequency simNotifierFrequency = Hertz.of(200);
 
@@ -96,7 +95,7 @@ public final class Constants {
     public static final double ambiguityThreshold = 0.2;
 
     // TODO: tune margins gains if time allows
-    public static final double xBoundMargin = 0.01; 
+    public static final double xBoundMargin = 0.01;
     public static final double yBoundMargin = 0.01;
     public static final double zBoundMargin = 0.01;
   }
@@ -105,9 +104,11 @@ public final class Constants {
     public static final Frequency odometryFrequency = Hertz.of(250);
 
     public static final Mass mass = Pounds.of(133.7);
-    public static final MomentOfInertia moi = KilogramSquareMeters.of(0); // TODO: tune moment of inertia via smartdashboard button
-    
-    public static final Current frontSlipCurrent = Amps.of(120); // TODO: tune front slip current, default is 120A
+    public static final MomentOfInertia moi =
+        KilogramSquareMeters.of(0); // TODO: tune moment of inertia via smartdashboard button
+
+    public static final Current frontSlipCurrent =
+        Amps.of(120); // TODO: tune front slip current, default is 120A
 
     public static final LinearVelocity driverTranslationalVelocity = MetersPerSecond.of(4);
     public static final AngularVelocity driverAngularVelocity = RadiansPerSecond.of(Math.PI);
@@ -121,9 +122,14 @@ public final class Constants {
         RadiansPerSecondPerSecond.of(Math.PI * 2);
 
     public static final Per<LinearVelocityUnit, DistanceUnit> poseTranslationalkP =
-        MetersPerSecond.per(Meter).ofNative(0);
+        MetersPerSecond.per(Meter).ofNative(0); // TODO: tune pose translation kP
+    public static final Per<LinearVelocityUnit, LinearVelocityUnit> poseTranslationalkD =
+        MetersPerSecond.per(MetersPerSecond).ofNative(0.0);
+
     public static final Per<AngularVelocityUnit, AngleUnit> poseRotationkP =
         RadiansPerSecond.per(Radian).ofNative(0);
+    public static final Per<AngularVelocityUnit, AngularVelocityUnit> poseRotationkD =
+        RadiansPerSecond.per(RadiansPerSecond).ofNative(0); // TODO: tune pose rotation kD
 
     public static final boolean ignorePoseTolerance = true;
 

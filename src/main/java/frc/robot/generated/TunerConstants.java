@@ -24,7 +24,7 @@ public class TunerConstants {
   private static final SlotConfigs steerGains =
       new SlotConfigs()
           .withKP(190)
-          .withKI(0) 
+          .withKI(0)
           .withKD(2)
           .withKS(0.31)
           .withKV(2.49)
@@ -33,7 +33,12 @@ public class TunerConstants {
   // When using closed-loop control, the drive motor uses the control
   // output type specified by SwerveModuleConstants.DriveMotorClosedLoopOutput
   private static final Slot0Configs driveGains =
-      new Slot0Configs().withKP(0.1).withKI(0).withKD(0).withKS(0.07311).withKV(0.11683); // TODO: Tune drive gains
+      new Slot0Configs()
+          .withKP(0.1)
+          .withKI(0)
+          .withKD(0)
+          .withKS(0.07311)
+          .withKV(0.11683); // TODO: Tune drive gains
 
   // The closed-loop output type to use for the steer motors;
   // This affects the PID/FF gains for the steer motors
@@ -63,7 +68,8 @@ public class TunerConstants {
       new TalonFXConfiguration()
           .withCurrentLimits(
               new CurrentLimitsConfigs()
-                  .withSupplyCurrentLimit(Amps.of(40)) // TODO: Tune drive supply current limit, default is 70A
+                  .withSupplyCurrentLimit(
+                      Amps.of(40)) // TODO: Tune drive supply current limit, default is 70A
                   .withSupplyCurrentLowerTime(0)
                   .withSupplyCurrentLimitEnable(true));
   private static final TalonFXConfiguration steerInitialConfigs =
@@ -72,11 +78,15 @@ public class TunerConstants {
               new CurrentLimitsConfigs()
                   // Swerve azimuth does not require much torque output, so we can set a relatively
                   // low
-                  .withSupplyCurrentLimit(Amps.of(25)) // TODO: Tune steer supply current limit, default is 70A
+                  .withSupplyCurrentLimit(
+                      Amps.of(25)) // TODO: Tune steer supply current limit, default is 70A
                   .withSupplyCurrentLowerTime(0)
                   .withSupplyCurrentLimitEnable(true))
           .withClosedLoopGeneral(
-              new ClosedLoopGeneralConfigs().withGainSchedErrorThreshold(Degrees.of(0.5))) // TODO: tune gain schedule error threshold, default is 0.5 degrees
+              new ClosedLoopGeneralConfigs()
+                  .withGainSchedErrorThreshold(
+                      Degrees.of(
+                          0.5))) // TODO: tune gain schedule error threshold, default is 0.5 degrees
           .withSlot1(
               Slot1Configs.from(steerGains)
                   .withKS(0)
