@@ -1,4 +1,4 @@
-package frc.lib;
+package frc.lib.subsystem;
 
 import static edu.wpi.first.wpilibj2.command.Commands.*;
 
@@ -8,8 +8,9 @@ import edu.wpi.first.epilogue.Logged.Strategy;
 import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
-import frc.lib.FaultsTable.Fault;
-import frc.lib.FaultsTable.FaultType;
+import frc.lib.fault.FaultsTable;
+import frc.lib.fault.FaultsTable.Fault;
+import frc.lib.fault.FaultsTable.FaultType;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -27,7 +28,7 @@ public abstract class AdvancedSubsystem extends SubsystemBase
   }
 
   public AdvancedSubsystem(NetworkTableInstance ntInst) {
-    _faultsTable = new FaultsTable(ntInst.getTable("Self Check"), getName() + " Faults");
+    _faultsTable = new FaultsTable(ntInst.getTable("SelfChecked"), getName() + " Faults");
   }
 
   /**
@@ -43,12 +44,12 @@ public abstract class AdvancedSubsystem extends SubsystemBase
   }
 
   /** Adds a new fault under this subsystem. */
-  protected final void addFault(String description, FaultType faultType) {
+  public final void addFault(String description, FaultType faultType) {
     _hasError = (faultType == FaultType.ERROR);
 
     Fault fault = new Fault(description, faultType);
 
-    DogLog.logFault(fault.toString());
+    DogLog.logFault(fault.toString(), null);
 
     _faults.add(fault);
     _faultsTable.set(_faults);

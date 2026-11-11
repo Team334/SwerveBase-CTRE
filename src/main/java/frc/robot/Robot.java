@@ -4,9 +4,12 @@
 
 package frc.robot;
 
-import static edu.wpi.first.units.Units.*;
-import static edu.wpi.first.wpilibj2.command.Commands.*;
-import static edu.wpi.first.wpilibj2.command.button.RobotModeTriggers.*;
+import static edu.wpi.first.units.Units.MetersPerSecond;
+import static edu.wpi.first.units.Units.RadiansPerSecond;
+import static edu.wpi.first.units.Units.Seconds;
+import static edu.wpi.first.wpilibj2.command.Commands.runOnce;
+import static edu.wpi.first.wpilibj2.command.Commands.sequence;
+import static edu.wpi.first.wpilibj2.command.button.RobotModeTriggers.autonomous;
 
 import choreo.auto.AutoChooser;
 import com.ctre.phoenix6.SignalLogger;
@@ -17,19 +20,22 @@ import edu.wpi.first.epilogue.Logged.Strategy;
 import edu.wpi.first.epilogue.logging.EpilogueBackend;
 import edu.wpi.first.epilogue.logging.FileBackend;
 import edu.wpi.first.epilogue.logging.NTEpilogueBackend;
+import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.util.ClassPreloader;
 import edu.wpi.first.wpilibj.DataLogManager;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.IterativeRobotBase;
+import edu.wpi.first.wpilibj.PowerDistribution;
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.Watchdog;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
-import frc.lib.FaultLogger;
-import frc.lib.FaultsTable.FaultType;
+import frc.lib.GcStatsCollector;
 import frc.lib.InputStream;
+import frc.lib.fault.FaultLogger;
+import frc.lib.fault.FaultsTable.FaultType;
 import frc.robot.Constants.Ports;
 import frc.robot.Constants.SwerveConstants;
 import frc.robot.commands.Autos;
@@ -56,6 +62,8 @@ public class Robot extends TimedRobot {
 
   private final NetworkTableInstance _ntInst;
 
+  private final GcStatsCollector _gcStatsCollector = new GcStatsCollector();
+
   private boolean _fileOnlySet = false;
 
   /**
@@ -71,16 +79,17 @@ public class Robot extends TimedRobot {
    * initialization code.
    */
   public Robot(NetworkTableInstance ntInst) {
+    super(Constants.robotPeriod.in(Seconds));
     _ntInst = ntInst;
 
     // set up loggers
-    DogLog.setOptions(DogLog.getOptions().withCaptureDs(true));
-    // DogLog.setPdh(new PowerDistribution()); // TODO: get ts to work
+    DogLog.setOptions(DogLog.getOptions().withCaptureDs(true).withNtTunables(true));
+    DogLog.setPdh(new PowerDistribution());
 
     setFileOnly(false); // file-only once connected to fms
 
     Epilogue.bind(this);
-    SignalLogger.start(); // TODO: log canivore can data as well
+    SignalLogger.start();
 
     DriverStation.silenceJoystickConnectionWarning(isSimulation());
 
@@ -88,8 +97,14 @@ public class Robot extends TimedRobot {
 
     configureDriverBindings();
 
+    SmartDashboard.putData(
+        "Reset Pose", runOnce(() -> _swerve.resetPose(Pose2d.kZero)).ignoringDisable(true));
+    SmartDashboard.putData("Reset Heading", _swerve.resetHeading());
+
+    SmartDashboard.putData("Toggle Field Oriented", _swerve.toggleFieldOriented());
+
     SmartDashboard.putData("Wheel Radius Characterization", _swerve.wheelRadiusCharacterization());
-    SmartDashboard.putData("Calculate Wheel COF", _swerve.calculateWheelCOF());
+
     SmartDashboard.putData("Calculate Chassis MOI", _swerve.calculateMOI());
     SmartDashboard.putData(
         "Calculate Motor Max Speed And Torque", _swerve.calculateMotorMaxSpeedAndTorque());
@@ -104,13 +119,10 @@ public class Robot extends TimedRobot {
 
     SmartDashboard.putData(
         runOnce(FaultLogger::clear).ignoringDisable(true).withName("Clear Faults"));
-
-    addPeriodic(FaultLogger::update, 1);
+    // addPeriodic(FaultLogger::update, 1);
 
     AutoChooser chooser = new AutoChooser();
-
     chooser.addRoutine("Example", _autos::example);
-
     SmartDashboard.putData("Auto Chooser", chooser);
 
     autonomous().whileTrue(chooser.selectedCommandScheduler());
@@ -161,25 +173,23 @@ public class Robot extends TimedRobot {
   }
 
   private void configureDriverBindings() {
+    final InputStream baseVelX =
+        InputStream.of(_driverController::getLeftY).deadband(0.02, 1).negate().signedPow(2);
+
+    final InputStream baseVelY =
+        InputStream.of(_driverController::getLeftX).deadband(0.02, 1).negate().signedPow(2);
+
+    final InputStream baseVelOmega =
+        InputStream.of(_driverController::getRightX).deadband(0.02, 1).negate().signedPow(2);
+
     _swerve.setDefaultCommand(
         _swerve
             .drive(
-                InputStream.of(_driverController::getLeftY)
-                    .deadband(0.02, 1)
-                    .negate()
-                    .signedPow(2)
-                    .scale(SwerveConstants.driverTranslationalVelocity.in(MetersPerSecond)),
-                InputStream.of(_driverController::getLeftX)
-                    .deadband(0.02, 1)
-                    .negate()
-                    .signedPow(2)
-                    .scale(SwerveConstants.driverTranslationalVelocity.in(MetersPerSecond)),
-                InputStream.of(_driverController::getRightX)
-                    .deadband(0.02, 1)
-                    .negate()
-                    .signedPow(2)
-                    .scale(SwerveConstants.driverAngularVelocity.in(RadiansPerSecond)))
-            .beforeStarting(() -> _swerve.isOpenLoop = true));
+                baseVelX.scale(SwerveConstants.driverTranslationalVelocity.in(MetersPerSecond)),
+                baseVelY.scale(SwerveConstants.driverTranslationalVelocity.in(MetersPerSecond)),
+                baseVelOmega.scale(SwerveConstants.driverAngularVelocity.in(RadiansPerSecond)))
+            .beforeStarting(() -> _swerve.isOpenLoop = true)
+            .withName("Drive"));
 
     _driverController.x().whileTrue(_swerve.brake());
     _driverController.a().onTrue(_swerve.toggleFieldOriented());
@@ -208,6 +218,8 @@ public class Robot extends TimedRobot {
 
       _fileOnlySet = true;
     }
+
+    _gcStatsCollector.update();
 
     DogLog.timeEnd("Timing/Robot/robotPeriodic()");
 

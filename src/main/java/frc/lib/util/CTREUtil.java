@@ -2,13 +2,14 @@
 // Open Source Software; you can modify and/or share it under the terms of
 // the WPILib BSD license file in the root directory of this project.
 
-package frc.lib;
+package frc.lib.util;
 
 import com.ctre.phoenix6.StatusCode;
 import com.ctre.phoenix6.hardware.CANcoder;
 import com.ctre.phoenix6.hardware.Pigeon2;
 import com.ctre.phoenix6.hardware.TalonFX;
-import frc.lib.FaultsTable.FaultType;
+import frc.lib.fault.FaultLogger;
+import frc.lib.fault.FaultsTable.FaultType;
 import java.util.function.Supplier;
 
 /** Utility class for CTRE devices. */
@@ -36,14 +37,14 @@ public class CTREUtil {
 
     // successful attempt
     if (statusCode.isOK()) {
-      FaultLogger.report(deviceName + " - Config Apply Successful.", FaultType.INFO);
+      FaultLogger.report(deviceName + " - Action Successful.", FaultType.INFO);
       return false;
     }
 
     // failed attempt
     else {
       FaultLogger.report(
-          deviceName + " - Config Apply Failed - " + statusCode.getDescription(), FaultType.ERROR);
+          deviceName + " - Action Failed - " + statusCode.getDescription(), FaultType.ERROR);
       return true;
     }
   }
@@ -89,16 +90,16 @@ public class CTREUtil {
 
   /** Returns the name to use when displaying info about a TalonFX. */
   public static String getName(TalonFX talonFX) {
-    return "TalonFX (" + talonFX.getDeviceID() + ")";
+    return "TalonFX (" + talonFX.getDeviceID() + " - " + talonFX.getNetwork().getName() + ")";
   }
 
   /** Returns the name to use when displaying info about a CANcoder. */
   public static String getName(CANcoder cancoder) {
-    return "CANcoder (" + cancoder.getDeviceID() + ")";
+    return "CANcoder (" + cancoder.getDeviceID() + " - " + cancoder.getNetwork().getName() + ")";
   }
 
   /** Retunrs the name to use when displaying info about a Pigeon. */
   public static String getName(Pigeon2 pigeon) {
-    return "Pigeon (" + pigeon.getDeviceID() + ")";
+    return "Pigeon (" + pigeon.getDeviceID() + " - " + pigeon.getNetwork().getName() + ")";
   }
 }
