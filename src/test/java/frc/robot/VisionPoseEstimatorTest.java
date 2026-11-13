@@ -17,6 +17,7 @@ import frc.robot.utils.VisionPoseEstimator;
 import frc.robot.utils.VisionPoseEstimator.VisionPoseEstimate;
 import frc.robot.utils.VisionPoseEstimator.VisionPoseEstimatorConstants;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
@@ -444,5 +445,28 @@ public class VisionPoseEstimatorTest {
 
     // pose's heading should be closer to the gyro than altPose's heading
     assert Math.abs(closerError.getRadians()) < Math.abs(furtherError.getRadians());
+  }
+
+  @Test
+  public void multiTagIgnoresUnknownTag() {
+    _visionSystemSim.addAprilTags(
+        new AprilTagFieldLayout(
+            _fieldLayout.getTags().subList(0, 2), _fieldLayout.getFieldLength(), 1));
+    // tag 6 is visible but not in the estimator's field layout
+    _visionSystemSim.addVisionTargets(
+        new VisionTargetSim(
+            new Pose3d(1.5, -0.5, 1, new Rotation3d(0, 0, -Math.PI)),
+            TargetModel.kAprilTag36h11,
+            6));
+    _visionSystemSim.update(Pose2d.kZero);
+
+    _testCam.update();
+
+    var estimates = _testCam.getNewEstimates();
+    assertEquals(1, estimates.size());
+
+    int[] tags = estimates.get(0).detectedTags().clone();
+    Arrays.sort(tags);
+    assertArrayEquals(new int[] {1, 2}, tags);
   }
 }

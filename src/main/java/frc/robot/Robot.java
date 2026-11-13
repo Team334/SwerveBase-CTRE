@@ -4,8 +4,6 @@
 
 package frc.robot;
 
-import static edu.wpi.first.units.Units.MetersPerSecond;
-import static edu.wpi.first.units.Units.RadiansPerSecond;
 import static edu.wpi.first.units.Units.Seconds;
 import static edu.wpi.first.wpilibj2.command.Commands.runOnce;
 import static edu.wpi.first.wpilibj2.command.Commands.sequence;
@@ -31,13 +29,13 @@ import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.Watchdog;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
+import edu.wpi.first.wpilibj2.command.StartEndCommand;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import frc.lib.GcStatsCollector;
 import frc.lib.InputStream;
 import frc.lib.fault.FaultLogger;
 import frc.lib.fault.FaultsTable.FaultType;
 import frc.robot.Constants.Ports;
-import frc.robot.Constants.SwerveConstants;
 import frc.robot.commands.Autos;
 import frc.robot.generated.TunerConstants;
 import frc.robot.subsystems.Swerve;
@@ -119,7 +117,7 @@ public class Robot extends TimedRobot {
 
     SmartDashboard.putData(
         runOnce(FaultLogger::clear).ignoringDisable(true).withName("Clear Faults"));
-    // addPeriodic(FaultLogger::update, 1);
+    addPeriodic(FaultLogger::update, 1);
 
     AutoChooser chooser = new AutoChooser();
     chooser.addRoutine("Example", _autos::example);
@@ -185,15 +183,21 @@ public class Robot extends TimedRobot {
     _swerve.setDefaultCommand(
         _swerve
             .drive(
-                baseVelX.scale(SwerveConstants.driverTranslationalVelocity.in(MetersPerSecond)),
-                baseVelY.scale(SwerveConstants.driverTranslationalVelocity.in(MetersPerSecond)),
-                baseVelOmega.scale(SwerveConstants.driverAngularVelocity.in(RadiansPerSecond)))
+                baseVelX.scale(_swerve::getDriverTranslationalVelocity),
+                baseVelY.scale(_swerve::getDriverTranslationalVelocity),
+                baseVelOmega.scale(_swerve::getDriverAngularVelocity))
             .beforeStarting(() -> _swerve.isOpenLoop = true)
             .withName("Drive"));
 
     _driverController.x().whileTrue(_swerve.brake());
     _driverController.a().onTrue(_swerve.toggleFieldOriented());
     _driverController.y().onTrue(_swerve.resetHeading());
+
+    _driverController
+        .povUp()
+        .toggleOnTrue(
+            new StartEndCommand(
+                () -> _swerve.setDefenseMode(true), () -> _swerve.setDefenseMode(false)));
   }
 
   /**

@@ -113,6 +113,12 @@ public final class Constants {
     public static final LinearVelocity driverTranslationalVelocity = MetersPerSecond.of(4);
     public static final AngularVelocity driverAngularVelocity = RadiansPerSecond.of(Math.PI);
 
+    public static final Current defenseSlipCurrent =
+        Amps.of(120); // TODO: tune, must exceed both tuned slip currents
+    public static final Current defenseDriveSupplyLimit = Amps.of(60);
+    public static final LinearVelocity defenseTranslationalVelocity = MetersPerSecond.of(4.5);
+    public static final AngularVelocity defenseAngularVelocity = RadiansPerSecond.of(Math.PI * 2.5);
+
     public static final LinearVelocity profileTranslationalVelocity = MetersPerSecond.of(1);
     public static final LinearAcceleration profileTranslationalAcceleration =
         MetersPerSecondPerSecond.of(2);

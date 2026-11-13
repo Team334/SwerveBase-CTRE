@@ -4,11 +4,15 @@
 
 package frc.robot.utils;
 
+import static edu.wpi.first.units.Units.Degrees;
+
 import dev.doglog.DogLog;
 import edu.wpi.first.apriltag.AprilTagFieldLayout;
 import edu.wpi.first.epilogue.Logged;
+import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.geometry.Pose3d;
 import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.math.geometry.Rotation3d;
 import edu.wpi.first.math.geometry.Transform3d;
 import edu.wpi.first.networktables.NetworkTableInstance;
 import frc.lib.fault.FaultLogger;
@@ -22,6 +26,7 @@ import java.util.function.Function;
 import org.photonvision.EstimatedRobotPose;
 import org.photonvision.PhotonCamera;
 import org.photonvision.PhotonPoseEstimator;
+import org.photonvision.PhotonPoseEstimator.PoseStrategy;
 import org.photonvision.simulation.PhotonCameraSim;
 import org.photonvision.simulation.SimCameraProperties;
 import org.photonvision.targeting.PhotonTrackedTarget;
@@ -294,17 +299,19 @@ public class VisionPoseEstimator implements AutoCloseable {
    * VisionPoseEstimate} with calculated measurement standard deviations.
    *
    * @param estimate The photon vision estimate.
+   * @param targetsUsed The targets that were actually used in the solve.
    * @param gyroHeading The gyro heading at the given estimate timestamp (necessary for
    *     disambiguation).
    * @return A new vision pose estimate.
    */
-  private VisionPoseEstimate processEstimate(EstimatedRobotPose estimate, Rotation2d gyroHeading) {
+  private VisionPoseEstimate processEstimate(
+      EstimatedRobotPose estimate, List<PhotonTrackedTarget> targetsUsed, Rotation2d gyroHeading) {
     // estimate properties
     Pose3d estimatedPose = estimate.estimatedPose;
     Pose3d altPose = estimatedPose;
     double timestamp = estimate.timestampSeconds;
     double ambiguity = -1;
-    int tagAmount = estimate.targetsUsed.size();
+    int tagAmount = targetsUsed.size();
     int[] detectedTags = new int[tagAmount];
     // SingleTagEstimate[] singleTagEstimates = new SingleTagEstimate[tagAmount];
     double avgTagDistance = 0;
@@ -314,7 +321,7 @@ public class VisionPoseEstimator implements AutoCloseable {
     // ---- DISAMBIGUATE (if single-tag) ----
     // disambiguate poses using gyro measurement (only necessary for a single tag)
     if (tagAmount == 1) {
-      var target = estimate.targetsUsed.get(0);
+      var target = targetsUsed.get(0);
       int tagId = target.getFiducialId();
       Pose3d tagPose = _poseEstimator.getFieldTags().getTagPose(tagId).get();
 
@@ -328,9 +335,15 @@ public class VisionPoseEstimator implements AutoCloseable {
       betterReprojPose = betterReprojPose.transformBy(robotToCamInverse);
       worseReprojPose = worseReprojPose.transformBy(robotToCamInverse);
 
-      // check which of the poses is closer to the correct gyro heading
-      if (Math.abs(betterReprojPose.toPose2d().getRotation().minus(gyroHeading).getDegrees())
-          < Math.abs(worseReprojPose.toPose2d().getRotation().minus(gyroHeading).getDegrees())) {
+      // trig solve only disambiguates; final pose stays the full 3D PnP pose
+      if (betterReprojPose
+              .getTranslation()
+              .toTranslation2d()
+              .getDistance(estimate.estimatedPose.getTranslation().toTranslation2d())
+          < worseReprojPose
+              .getTranslation()
+              .toTranslation2d()
+              .getDistance(estimate.estimatedPose.getTranslation().toTranslation2d())) {
         estimatedPose = betterReprojPose;
         altPose = worseReprojPose;
       } else {
@@ -339,10 +352,13 @@ public class VisionPoseEstimator implements AutoCloseable {
       }
     }
 
+    logRotationDiff(
+        estimatedPose.transformBy(robotToCam), new Rotation3d(0, 0, gyroHeading.getRadians()));
+
     // ---- FILTER ----
     // get tag distance
     for (int i = 0; i < tagAmount; i++) {
-      PhotonTrackedTarget target = estimate.targetsUsed.get(i);
+      PhotonTrackedTarget target = targetsUsed.get(i);
 
       int tagId = target.getFiducialId();
       Pose3d tagPose = _poseEstimator.getFieldTags().getTagPose(tagId).get();
@@ -414,6 +430,29 @@ public class VisionPoseEstimator implements AutoCloseable {
         isValid);
   }
 
+  /**
+   * 4481 Rembrandts Log the difference between the camera rotation entered in constants and the
+   * camera rotation measured by the vision system. A positive error means that the camera rotation
+   * needs to be reduced in constants.
+   *
+   * @param fieldSpaceCameraPose The detected pose of the camera in field space
+   * @param robotRotation Rotation of the robot
+   */
+  private void logRotationDiff(Pose3d fieldSpaceCameraPose, Rotation3d robotRotation) {
+    Rotation3d rotation = fieldSpaceCameraPose.getRotation();
+    Rotation3d cameraRotation = this.robotToCam.getRotation();
+    double cameraYaw = robotRotation.getZ() + cameraRotation.getZ();
+    DogLog.log(
+        "Vision/Camera Rotation Error/" + this.camName + "/x (roll, deg)",
+        cameraRotation.getMeasureX().minus(rotation.getMeasureX()).in(Degrees));
+    DogLog.log(
+        "Vision/Camera Rotation Error/" + this.camName + "/y (pitch, deg)",
+        cameraRotation.getMeasureY().minus(rotation.getMeasureY()).in(Degrees));
+    DogLog.log(
+        "Vision/Camera Rotation Error/" + this.camName + "/z (yaw, deg)",
+        Math.toDegrees(MathUtil.angleModulus(cameraYaw - rotation.getZ())));
+  }
+
   /** Reads from the camera and generates an array of new latest {@link VisionPoseEstimate}(s). */
   public void update() {
     DogLog.log("Is " + camName + " Connected", _camera.isConnected());
@@ -423,19 +462,36 @@ public class VisionPoseEstimator implements AutoCloseable {
     var results = _camera.getAllUnreadResults();
 
     for (var result : results) {
+      double t = result.getTimestampSeconds();
+      var gyro = _gyroAtTime.apply(t);
+      _poseEstimator.addHeadingData(t, gyro);
+
       var est = _poseEstimator.estimateCoprocMultiTagPose(result);
+      if (est.isEmpty()) est = _poseEstimator.estimatePnpDistanceTrigSolvePose(result);
+      if (est.isEmpty()) continue;
 
-      if (est.isEmpty())
-        est =
-            _poseEstimator.estimateLowestAmbiguityPose(
-                result); // this is actually "closest-to-gyro" in the robot code
+      // photon 2026 reports every visible tag as used; keep only the solve's tags (bug found by
+      // 340)
+      boolean multiTag = est.get().strategy == PoseStrategy.MULTI_TAG_PNP_ON_COPROCESSOR;
+      var idsUsed = multiTag ? result.getMultiTagResult().get().fiducialIDsUsed : null;
+      List<PhotonTrackedTarget> targetsUsed =
+          multiTag
+              ? result.getTargets().stream()
+                  .filter(tgt -> idsUsed.contains((short) tgt.getFiducialId()))
+                  .toList()
+              : List.of(result.getBestTarget());
 
-      if (est.isPresent()) {
-        var newEstimate = processEstimate(est.get(), _gyroAtTime.apply(est.get().timestampSeconds));
-        _newEstimates.add(newEstimate);
+      // coprocessor layout may differ from ours: processEstimate would throw / divide by zero
+      if (targetsUsed.isEmpty()
+          || targetsUsed.stream()
+              .anyMatch(
+                  tgt -> _poseEstimator.getFieldTags().getTagPose(tgt.getFiducialId()).isEmpty()))
+        continue;
 
-        logNewEstimate(newEstimate);
-      }
+      var newEstimate = processEstimate(est.get(), targetsUsed, gyro);
+      _newEstimates.add(newEstimate);
+
+      logNewEstimate(newEstimate);
     }
   }
 

@@ -172,6 +172,20 @@ public class Swerve extends TunerSwerveDrivetrain implements Subsystem, SelfChec
 
   private boolean _hasAppliedDriverPerspective = false;
 
+  @Logged(name = "Defense Mode")
+  private boolean _defenseMode = false;
+
+  // entries stay null if the boot refresh failed, so we never apply factory-default limits
+  private final CurrentLimitsConfigs[] _normalDriveLimits = new CurrentLimitsConfigs[4];
+  private final CurrentLimitsConfigs[] _defenseDriveLimits = new CurrentLimitsConfigs[4];
+
+  private final LinearFilter _vxFilter = LinearFilter.movingAverage(5);
+  private final LinearFilter _vyFilter = LinearFilter.movingAverage(5);
+  private final LinearFilter _omegaFilter = LinearFilter.movingAverage(5);
+
+  @Logged(name = "Filtered Speeds")
+  private ChassisSpeeds _filteredSpeeds = new ChassisSpeeds();
+
   /**
    * Creates a new Swerve.
    *
@@ -207,6 +221,22 @@ public class Swerve extends TunerSwerveDrivetrain implements Subsystem, SelfChec
     currentLimitConfigs.StatorCurrentLimit = SwerveConstants.frontSlipCurrent.in(Amps);
     CTREUtil.attempt(
         () -> frontRightDriveConfigurator.apply(currentLimitConfigs), getModule(1).getDriveMotor());
+
+    // cached at boot so leaving defense restores exact per-module limits
+    for (int i = 0; i < 4; i++) {
+      final var motor = getModule(i).getDriveMotor();
+      final var normal = new CurrentLimitsConfigs();
+      final var defense = new CurrentLimitsConfigs();
+
+      if (CTREUtil.attempt(() -> motor.getConfigurator().refresh(normal), motor)
+          || CTREUtil.attempt(() -> motor.getConfigurator().refresh(defense), motor)) continue;
+
+      defense.StatorCurrentLimit = SwerveConstants.defenseSlipCurrent.in(Amps);
+      defense.SupplyCurrentLimit = SwerveConstants.defenseDriveSupplyLimit.in(Amps);
+
+      _normalDriveLimits[i] = normal;
+      _defenseDriveLimits[i] = defense;
+    }
 
     _robotCentricRequest
         .withDeadband(SwerveConstants.translationalDeadband)
@@ -320,6 +350,7 @@ public class Swerve extends TunerSwerveDrivetrain implements Subsystem, SelfChec
     }
 
     FaultLogger.register(getPigeon2());
+    FaultLogger.register(TunerConstants.kCANBus);
   }
 
   private void startSimThread() {
@@ -556,6 +587,48 @@ public class Swerve extends TunerSwerveDrivetrain implements Subsystem, SelfChec
     return getState().Speeds;
   }
 
+  /** Moving-average chassis speeds (robot-relative), for consumers that want less noise. */
+  public ChassisSpeeds getFilteredChassisSpeeds() {
+    return _filteredSpeeds;
+  }
+
+  /** Swaps drive motor current limits (stator and supply) and driver speed scales. */
+  public void setDefenseMode(boolean enabled) {
+    _defenseMode = enabled;
+
+    var limits = enabled ? _defenseDriveLimits : _normalDriveLimits;
+
+    for (int i = 0; i < 4; i++) {
+      final var motor = getModule(i).getDriveMotor();
+      // skip unreachable motors: each failed apply blocks the main loop up to 0.5 s
+      if (limits[i] == null || !motor.isConnected()) continue;
+
+      final var config = limits[i];
+      CTREUtil.attempt(() -> motor.getConfigurator().apply(config), motor);
+    }
+  }
+
+  /** Whether defense mode (reduced speed, defense current limits) is active. */
+  public boolean isDefenseMode() {
+    return _defenseMode;
+  }
+
+  /** Driver full-stick translational velocity in m/s. */
+  public double getDriverTranslationalVelocity() {
+    return (_defenseMode
+            ? SwerveConstants.defenseTranslationalVelocity
+            : SwerveConstants.driverTranslationalVelocity)
+        .in(MetersPerSecond);
+  }
+
+  /** Driver full-stick angular velocity in rad/s. */
+  public double getDriverAngularVelocity() {
+    return (_defenseMode
+            ? SwerveConstants.defenseAngularVelocity
+            : SwerveConstants.driverAngularVelocity)
+        .in(RadiansPerSecond);
+  }
+
   // updates pose estimator with vision
   private void updateVisionPoseEstimates() {
     _newEstimates.clear();
@@ -593,6 +666,13 @@ public class Swerve extends TunerSwerveDrivetrain implements Subsystem, SelfChec
     DogLog.time("Timing/Swerve/periodic()");
 
     updateVisionPoseEstimates();
+
+    var speeds = getState().Speeds;
+    _filteredSpeeds =
+        new ChassisSpeeds(
+            _vxFilter.calculate(speeds.vxMetersPerSecond),
+            _vyFilter.calculate(speeds.vyMetersPerSecond),
+            _omegaFilter.calculate(speeds.omegaRadiansPerSecond));
 
     if (!_hasAppliedDriverPerspective || DriverStation.isDisabled()) {
       DriverStation.getAlliance()
